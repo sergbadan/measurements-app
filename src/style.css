@@ -130,16 +130,13 @@ td:last-child {
 }
 
 .data-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
-}
-
-.data-actions button {
-    flex: 1;
 }
 
 @media (max-width: 500px) {
     .data-actions {
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 }

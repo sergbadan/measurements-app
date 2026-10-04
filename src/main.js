@@ -114,17 +114,32 @@ app.innerHTML = `
 
     <div class="data-actions">
         <button type="button" id="export-button">
-            Export data
+            Export JSON
+        </button>
+
+        <button type="button" id="export-csv-button" class="secondary-button">
+            Export CSV
         </button>
 
         <button type="button" id="import-button" class="secondary-button">
-            Import data
+            Import JSON
+        </button>
+
+        <button type="button" id="import-csv-button" class="secondary-button">
+            Import CSV
         </button>
 
         <input
             type="file"
             id="import-file"
             accept=".json,application/json"
+            hidden
+        >
+
+        <input
+            type="file"
+            id="import-csv-file"
+            accept=".csv,text/csv"
             hidden
         >
     </div>
@@ -149,6 +164,149 @@ let waistChart = null;
 const exportButton = document.querySelector('#export-button');
 const importButton = document.querySelector('#import-button');
 const importFile = document.querySelector('#import-file');
+const exportCsvButton = document.querySelector('#export-csv-button');
+const importCsvButton = document.querySelector('#import-csv-button');
+const importCsvFile = document.querySelector('#import-csv-file');
+
+async function exportCsv() {
+    const measurements = await db.measurements
+        .orderBy('date')
+        .toArray();
+
+    const header = 'Date,Weight (kg),Waist (cm)';
+
+    const rows = measurements.map(measurement => {
+        return [
+            measurement.date,
+            measurement.weight,
+            measurement.waist
+        ].join(',');
+    });
+
+    const csv = [header, ...rows].join('\n');
+
+    // BOM makes UTF-8 work correctly in Excel
+    const blob = new Blob(
+        ['\uFEFF' + csv],
+        { type: 'text/csv;charset=utf-8;' }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download =
+        `measurements-${new Date().toISOString().split('T')[0]}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+}
+
+async function importCsv(file) {
+    try {
+        const text = await file.text();
+
+        const lines = text
+            .replace(/^\uFEFF/, '')
+            .split(/\r?\n/)
+            .filter(line => line.trim() !== '');
+
+        if (lines.length < 2) {
+            throw new Error('CSV file is empty.');
+        }
+
+        // Skip header
+        const dataLines = lines.slice(1);
+
+        let imported = 0;
+        let skipped = 0;
+
+        for (const line of dataLines) {
+            const columns = line.split(',');
+
+            if (columns.length < 3) {
+                skipped++;
+                continue;
+            }
+
+            const date = columns[0].trim();
+            const weight = Number(columns[1].trim());
+            const waist = Number(columns[2].trim());
+
+            if (
+                !date ||
+                !Number.isFinite(weight) ||
+                !Number.isFinite(waist)
+            ) {
+                skipped++;
+                continue;
+            }
+
+            // Avoid importing the same measurement twice
+            const existing = await db.measurements
+                .where('date')
+                .equals(date)
+                .filter(measurement =>
+                    measurement.weight === weight &&
+                    measurement.waist === waist
+                )
+                .first();
+
+            if (existing) {
+                skipped++;
+                continue;
+            }
+
+            await db.measurements.add({
+                date,
+                weight,
+                waist
+            });
+
+            imported++;
+        }
+
+        await loadMeasurements();
+
+        alert(
+            `CSV import completed.\n\n` +
+            `Imported: ${imported}\n` +
+            `Skipped: ${skipped}`
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        alert(
+            'Could not import the CSV file.\n\n' +
+            'Please make sure it has the correct format.'
+        );
+    }
+}
+
+exportCsvButton.addEventListener('click', async () => {
+    await exportCsv();
+});
+
+importCsvButton.addEventListener('click', () => {
+    importCsvFile.click();
+});
+
+importCsvFile.addEventListener('change', async () => {
+    const file = importCsvFile.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    await importCsv(file);
+
+    importCsvFile.value = '';
+});
 
 async function exportData() {
     const measurements = await db.measurements.toArray();
