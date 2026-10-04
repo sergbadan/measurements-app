@@ -131,18 +131,10 @@ app.innerHTML = `
         <section id="charts-tab" class="tab-content">
 
             <section class="card">
-                <h2>Weight trend</h2>
+                <h2>Body measurements trend</h2>
 
                 <div class="chart-container">
-                    <canvas id="weight-chart"></canvas>
-                </div>
-            </section>
-
-            <section class="card">
-                <h2>Waist trend</h2>
-
-                <div class="chart-container">
-                    <canvas id="waist-chart"></canvas>
+                    <canvas id="body-chart"></canvas>
                 </div>
             </section>
 
@@ -251,8 +243,7 @@ const importCsvFile =
 
 let editingId = null;
 
-let weightChart = null;
-let waistChart = null;
+let bodyChart = null;
 
 
 // --------------------------------------------------
@@ -286,15 +277,11 @@ tabButtons.forEach(button => {
             .querySelector(`#${selectedTab}-tab`)
             .classList.add('active');
 
-        // Charts need a resize after becoming visible
+        // Chart needs a resize after becoming visible
         if (selectedTab === 'charts') {
 
-            if (weightChart) {
-                weightChart.resize();
-            }
-
-            if (waistChart) {
-                waistChart.resize();
+            if (bodyChart) {
+                bodyChart.resize();
             }
         }
     });
@@ -360,15 +347,15 @@ async function loadMeasurements() {
         tableBody.appendChild(row);
     }
 
-    updateCharts(measurements);
+    updateChart(measurements);
 }
 
 
 // --------------------------------------------------
-// Charts
+// Combined chart
 // --------------------------------------------------
 
-function updateCharts(measurements) {
+function updateChart(measurements) {
 
     const sortedMeasurements =
         [...measurements].sort(
@@ -391,23 +378,18 @@ function updateCharts(measurements) {
         );
 
 
-    // Destroy previous charts
+    // Destroy previous chart
 
-    if (weightChart) {
-        weightChart.destroy();
-    }
-
-    if (waistChart) {
-        waistChart.destroy();
+    if (bodyChart) {
+        bodyChart.destroy();
     }
 
 
-    // Weight chart
+    const canvas =
+        document.querySelector('#body-chart');
 
-    const weightCanvas =
-        document.querySelector('#weight-chart');
 
-    weightChart = new Chart(weightCanvas, {
+    bodyChart = new Chart(canvas, {
 
         type: 'line',
 
@@ -415,64 +397,106 @@ function updateCharts(measurements) {
             labels,
 
             datasets: [
+
+                // Weight
                 {
                     label: 'Weight (kg)',
                     data: weights,
-                    tension: 0.2
+
+                    yAxisID: 'weight-axis',
+
+                    borderColor: '#2563eb',
+                    backgroundColor: '#2563eb',
+
+                    borderWidth: 2,
+
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+
+                    tension: 0.2,
+
+                    fill: false
+                },
+
+                // Waist
+                {
+                    label: 'Waist (cm)',
+                    data: waists,
+
+                    yAxisID: 'waist-axis',
+
+                    borderColor: '#dc2626',
+                    backgroundColor: '#dc2626',
+
+                    borderWidth: 2,
+
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+
+                    tension: 0.2,
+
+                    fill: false
                 }
+
             ]
         },
 
         options: {
+
             responsive: true,
+
             maintainAspectRatio: false,
 
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+
+            plugins: {
+
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+
+            },
+
             scales: {
-                y: {
+
+                // Left axis - Weight
+                'weight-axis': {
+
+                    type: 'linear',
+
+                    position: 'left',
+
                     title: {
                         display: true,
                         text: 'Weight (kg)'
                     }
-                }
-            }
-        }
 
-    });
+                },
 
+                // Right axis - Waist
+                'waist-axis': {
 
-    // Waist chart
+                    type: 'linear',
 
-    const waistCanvas =
-        document.querySelector('#waist-chart');
+                    position: 'right',
 
-    waistChart = new Chart(waistCanvas, {
-
-        type: 'line',
-
-        data: {
-            labels,
-
-            datasets: [
-                {
-                    label: 'Waist (cm)',
-                    data: waists,
-                    tension: 0.2
-                }
-            ]
-        },
-
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-
-            scales: {
-                y: {
                     title: {
                         display: true,
                         text: 'Waist (cm)'
+                    },
+
+                    grid: {
+                        drawOnChartArea: false
                     }
+
                 }
+
             }
+
         }
 
     });
