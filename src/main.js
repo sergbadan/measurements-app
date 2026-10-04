@@ -109,6 +109,27 @@ app.innerHTML = `
             </div>
         </section>
 
+<section class="card">
+    <h2>Data management</h2>
+
+    <div class="data-actions">
+        <button type="button" id="export-button">
+            Export data
+        </button>
+
+        <button type="button" id="import-button" class="secondary-button">
+            Import data
+        </button>
+
+        <input
+            type="file"
+            id="import-file"
+            accept=".json,application/json"
+            hidden
+        >
+    </div>
+</section>
+        
     </div>
 `;
 
@@ -125,7 +146,125 @@ const cancelButton = document.querySelector('#cancel-button');
 let editingId = null;
 let weightChart = null;
 let waistChart = null;
+const exportButton = document.querySelector('#export-button');
+const importButton = document.querySelector('#import-button');
+const importFile = document.querySelector('#import-file');
 
+async function exportData() {
+    const measurements = await db.measurements.toArray();
+
+    const data = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        measurements
+    };
+
+    const json = JSON.stringify(data, null, 2);
+
+    const blob = new Blob([json], {
+        type: 'application/json'
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `measurements-${new Date().toISOString().split('T')[0]}.json`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+}
+
+async function importData(file) {
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (!data.measurements || !Array.isArray(data.measurements)) {
+            throw new Error('Invalid file format.');
+        }
+
+        let imported = 0;
+        let skipped = 0;
+
+        for (const measurement of data.measurements) {
+            if (
+                typeof measurement.date !== 'string' ||
+                typeof measurement.weight !== 'number' ||
+                typeof measurement.waist !== 'number'
+            ) {
+                skipped++;
+                continue;
+            }
+
+            // If an ID exists and is already in the database,
+            // don't import it again.
+            if (measurement.id !== undefined) {
+                const existing = await db.measurements.get(
+                    measurement.id
+                );
+
+                if (existing) {
+                    skipped++;
+                    continue;
+                }
+            }
+
+            // Don't import the old database ID.
+            // Dexie will create a new one.
+            const newMeasurement = {
+                date: measurement.date,
+                weight: measurement.weight,
+                waist: measurement.waist
+            };
+
+            await db.measurements.add(newMeasurement);
+
+            imported++;
+        }
+
+        await loadMeasurements();
+
+        alert(
+            `Import completed.\n\n` +
+            `Imported: ${imported}\n` +
+            `Skipped: ${skipped}`
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        alert(
+            'Could not import the file.\n\n' +
+            'Please make sure it is a valid measurements JSON file.'
+        );
+    }
+}
+
+exportButton.addEventListener('click', async () => {
+    await exportData();
+});
+
+importButton.addEventListener('click', () => {
+    importFile.click();
+});
+
+importFile.addEventListener('change', async () => {
+    const file = importFile.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    await importData(file);
+
+    // Allow selecting the same file again later
+    importFile.value = '';
+});
 
 // Set today's date
 dateInput.value = new Date().toISOString().split('T')[0];
