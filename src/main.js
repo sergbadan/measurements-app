@@ -1,6 +1,5 @@
 import './style.css';
 import Dexie from 'dexie';
-import './style.css';
 import Chart from 'chart.js/auto';
 
 const db = new Dexie('MeasurementsDatabase');
@@ -13,421 +12,310 @@ const app = document.querySelector('#app');
 
 app.innerHTML = `
     <div class="container">
+
         <header>
             <h1>My Measurements</h1>
             <p class="subtitle">Track your weight and waist</p>
         </header>
 
-        <section class="card">
-            <h2 id="form-title">Add measurement</h2>
+        <!-- Navigation -->
+        <nav class="tabs">
+            <button
+                type="button"
+                class="tab-button active"
+                data-tab="measurements"
+            >
+                Measurements
+            </button>
 
-            <form id="measurement-form">
+            <button
+                type="button"
+                class="tab-button"
+                data-tab="charts"
+            >
+                Charts
+            </button>
 
-                <div class="form-group">
-                    <label for="date">Date</label>
-                    <input
-                        type="date"
-                        id="date"
-                        name="date"
-                        required
+            <button
+                type="button"
+                class="tab-button"
+                data-tab="data"
+            >
+                Data
+            </button>
+        </nav>
+
+        <!-- Measurements tab -->
+        <section id="measurements-tab" class="tab-content active">
+
+            <section class="card">
+                <h2 id="form-title">Add measurement</h2>
+
+                <form id="measurement-form">
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input
+                            type="date"
+                            id="date"
+                            name="date"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weight">Weight (kg)</label>
+                        <input
+                            type="number"
+                            id="weight"
+                            name="weight"
+                            step="0.1"
+                            min="0"
+                            placeholder="82.4"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="waist">Waist (cm)</label>
+                        <input
+                            type="number"
+                            id="waist"
+                            name="waist"
+                            step="0.1"
+                            min="0"
+                            placeholder="94"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" id="save-button">
+                        Save measurement
+                    </button>
+
+                    <button
+                        type="button"
+                        id="cancel-button"
+                        class="secondary-button"
+                        hidden
                     >
-                </div>
+                        Cancel
+                    </button>
 
-                <div class="form-group">
-                    <label for="weight">Weight (kg)</label>
-                    <input
-                        type="number"
-                        id="weight"
-                        name="weight"
-                        step="0.1"
-                        min="0"
-                        placeholder="82.4"
-                        required
+                </form>
+            </section>
+
+            <section class="card">
+                <h2>Measurements</h2>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Weight</th>
+                                <th>Waist</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="measurements-table">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </section>
+
+        <!-- Charts tab -->
+        <section id="charts-tab" class="tab-content">
+
+            <section class="card">
+                <h2>Weight trend</h2>
+
+                <div class="chart-container">
+                    <canvas id="weight-chart"></canvas>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Waist trend</h2>
+
+                <div class="chart-container">
+                    <canvas id="waist-chart"></canvas>
+                </div>
+            </section>
+
+        </section>
+
+        <!-- Data tab -->
+        <section id="data-tab" class="tab-content">
+
+            <section class="card">
+                <h2>Data management</h2>
+
+                <p class="data-description">
+                    Backup your measurements or transfer them
+                    to Excel or Google Sheets.
+                </p>
+
+                <div class="data-actions">
+
+                    <button
+                        type="button"
+                        id="export-button"
                     >
-                </div>
+                        Export JSON
+                    </button>
 
-                <div class="form-group">
-                    <label for="waist">Waist (cm)</label>
-                    <input
-                        type="number"
-                        id="waist"
-                        name="waist"
-                        step="0.1"
-                        min="0"
-                        placeholder="94"
-                        required
+                    <button
+                        type="button"
+                        id="export-csv-button"
+                        class="secondary-button"
                     >
+                        Export CSV
+                    </button>
+
+                    <button
+                        type="button"
+                        id="import-button"
+                        class="secondary-button"
+                    >
+                        Import JSON
+                    </button>
+
+                    <button
+                        type="button"
+                        id="import-csv-button"
+                        class="secondary-button"
+                    >
+                        Import CSV
+                    </button>
+
+                    <input
+                        type="file"
+                        id="import-file"
+                        accept=".json,application/json"
+                        hidden
+                    >
+
+                    <input
+                        type="file"
+                        id="import-csv-file"
+                        accept=".csv,text/csv"
+                        hidden
+                    >
+
                 </div>
+            </section>
 
-                <button type="submit" id="save-button">
-                    Save measurement
-                </button>
-
-                <button
-                    type="button"
-                    id="cancel-button"
-                    class="secondary-button"
-                    hidden
-                >
-                    Cancel
-                </button>
-
-            </form>
         </section>
 
-        <section class="card">
-            <h2>Measurements</h2>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Weight</th>
-                            <th>Waist</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="measurements-table">
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="card">
-            <h2>Weight trend</h2>
-            <div class="chart-container">
-                <canvas id="weight-chart"></canvas>
-            </div>
-        </section>
-
-        <section class="card">
-            <h2>Waist trend</h2>
-            <div class="chart-container">
-                <canvas id="waist-chart"></canvas>
-            </div>
-        </section>
-
-<section class="card">
-    <h2>Data management</h2>
-
-    <div class="data-actions">
-        <button type="button" id="export-button">
-            Export JSON
-        </button>
-
-        <button type="button" id="export-csv-button" class="secondary-button">
-            Export CSV
-        </button>
-
-        <button type="button" id="import-button" class="secondary-button">
-            Import JSON
-        </button>
-
-        <button type="button" id="import-csv-button" class="secondary-button">
-            Import CSV
-        </button>
-
-        <input
-            type="file"
-            id="import-file"
-            accept=".json,application/json"
-            hidden
-        >
-
-        <input
-            type="file"
-            id="import-csv-file"
-            accept=".csv,text/csv"
-            hidden
-        >
-    </div>
-</section>
-        
     </div>
 `;
 
+
+// --------------------------------------------------
+// DOM elements
+// --------------------------------------------------
+
 const form = document.querySelector('#measurement-form');
+
 const dateInput = document.querySelector('#date');
 const weightInput = document.querySelector('#weight');
 const waistInput = document.querySelector('#waist');
+
 const tableBody = document.querySelector('#measurements-table');
 
 const formTitle = document.querySelector('#form-title');
 const saveButton = document.querySelector('#save-button');
 const cancelButton = document.querySelector('#cancel-button');
 
-let editingId = null;
-let weightChart = null;
-let waistChart = null;
 const exportButton = document.querySelector('#export-button');
 const importButton = document.querySelector('#import-button');
 const importFile = document.querySelector('#import-file');
-const exportCsvButton = document.querySelector('#export-csv-button');
-const importCsvButton = document.querySelector('#import-csv-button');
-const importCsvFile = document.querySelector('#import-csv-file');
 
-async function exportCsv() {
-    const measurements = await db.measurements
-        .orderBy('date')
-        .toArray();
+const exportCsvButton =
+    document.querySelector('#export-csv-button');
 
-    const header = 'Date,Weight (kg),Waist (cm)';
+const importCsvButton =
+    document.querySelector('#import-csv-button');
 
-    const rows = measurements.map(measurement => {
-        return [
-            measurement.date,
-            measurement.weight,
-            measurement.waist
-        ].join(',');
+const importCsvFile =
+    document.querySelector('#import-csv-file');
+
+
+// --------------------------------------------------
+// Variables
+// --------------------------------------------------
+
+let editingId = null;
+
+let weightChart = null;
+let waistChart = null;
+
+
+// --------------------------------------------------
+// Tabs
+// --------------------------------------------------
+
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabButtons.forEach(button => {
+
+    button.addEventListener('click', () => {
+
+        const selectedTab = button.dataset.tab;
+
+        // Remove active state from all buttons
+        tabButtons.forEach(tabButton => {
+            tabButton.classList.remove('active');
+        });
+
+        // Remove active state from all sections
+        tabContents.forEach(tabContent => {
+            tabContent.classList.remove('active');
+        });
+
+        // Activate selected button
+        button.classList.add('active');
+
+        // Activate selected section
+        document
+            .querySelector(`#${selectedTab}-tab`)
+            .classList.add('active');
+
+        // Charts need a resize after becoming visible
+        if (selectedTab === 'charts') {
+
+            if (weightChart) {
+                weightChart.resize();
+            }
+
+            if (waistChart) {
+                waistChart.resize();
+            }
+        }
     });
 
-    const csv = [header, ...rows].join('\n');
-
-    // BOM makes UTF-8 work correctly in Excel
-    const blob = new Blob(
-        ['\uFEFF' + csv],
-        { type: 'text/csv;charset=utf-8;' }
-    );
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-
-    link.href = url;
-    link.download =
-        `measurements-${new Date().toISOString().split('T')[0]}.csv`;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
-}
-
-async function importCsv(file) {
-    try {
-        const text = await file.text();
-
-        const lines = text
-            .replace(/^\uFEFF/, '')
-            .split(/\r?\n/)
-            .filter(line => line.trim() !== '');
-
-        if (lines.length < 2) {
-            throw new Error('CSV file is empty.');
-        }
-
-        // Skip header
-        const dataLines = lines.slice(1);
-
-        let imported = 0;
-        let skipped = 0;
-
-        for (const line of dataLines) {
-            const columns = line.split(',');
-
-            if (columns.length < 3) {
-                skipped++;
-                continue;
-            }
-
-            const date = columns[0].trim();
-            const weight = Number(columns[1].trim());
-            const waist = Number(columns[2].trim());
-
-            if (
-                !date ||
-                !Number.isFinite(weight) ||
-                !Number.isFinite(waist)
-            ) {
-                skipped++;
-                continue;
-            }
-
-            // Avoid importing the same measurement twice
-            const existing = await db.measurements
-                .where('date')
-                .equals(date)
-                .filter(measurement =>
-                    measurement.weight === weight &&
-                    measurement.waist === waist
-                )
-                .first();
-
-            if (existing) {
-                skipped++;
-                continue;
-            }
-
-            await db.measurements.add({
-                date,
-                weight,
-                waist
-            });
-
-            imported++;
-        }
-
-        await loadMeasurements();
-
-        alert(
-            `CSV import completed.\n\n` +
-            `Imported: ${imported}\n` +
-            `Skipped: ${skipped}`
-        );
-
-    } catch (error) {
-        console.error(error);
-
-        alert(
-            'Could not import the CSV file.\n\n' +
-            'Please make sure it has the correct format.'
-        );
-    }
-}
-
-exportCsvButton.addEventListener('click', async () => {
-    await exportCsv();
 });
 
-importCsvButton.addEventListener('click', () => {
-    importCsvFile.click();
-});
 
-importCsvFile.addEventListener('change', async () => {
-    const file = importCsvFile.files[0];
+// --------------------------------------------------
+// Initial date
+// --------------------------------------------------
 
-    if (!file) {
-        return;
-    }
+dateInput.value =
+    new Date().toISOString().split('T')[0];
 
-    await importCsv(file);
 
-    importCsvFile.value = '';
-});
-
-async function exportData() {
-    const measurements = await db.measurements.toArray();
-
-    const data = {
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        measurements
-    };
-
-    const json = JSON.stringify(data, null, 2);
-
-    const blob = new Blob([json], {
-        type: 'application/json'
-    });
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-
-    link.href = url;
-    link.download = `measurements-${new Date().toISOString().split('T')[0]}.json`;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
-}
-
-async function importData(file) {
-    try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-
-        if (!data.measurements || !Array.isArray(data.measurements)) {
-            throw new Error('Invalid file format.');
-        }
-
-        let imported = 0;
-        let skipped = 0;
-
-        for (const measurement of data.measurements) {
-            if (
-                typeof measurement.date !== 'string' ||
-                typeof measurement.weight !== 'number' ||
-                typeof measurement.waist !== 'number'
-            ) {
-                skipped++;
-                continue;
-            }
-
-            // If an ID exists and is already in the database,
-            // don't import it again.
-            if (measurement.id !== undefined) {
-                const existing = await db.measurements.get(
-                    measurement.id
-                );
-
-                if (existing) {
-                    skipped++;
-                    continue;
-                }
-            }
-
-            // Don't import the old database ID.
-            // Dexie will create a new one.
-            const newMeasurement = {
-                date: measurement.date,
-                weight: measurement.weight,
-                waist: measurement.waist
-            };
-
-            await db.measurements.add(newMeasurement);
-
-            imported++;
-        }
-
-        await loadMeasurements();
-
-        alert(
-            `Import completed.\n\n` +
-            `Imported: ${imported}\n` +
-            `Skipped: ${skipped}`
-        );
-
-    } catch (error) {
-        console.error(error);
-
-        alert(
-            'Could not import the file.\n\n' +
-            'Please make sure it is a valid measurements JSON file.'
-        );
-    }
-}
-
-exportButton.addEventListener('click', async () => {
-    await exportData();
-});
-
-importButton.addEventListener('click', () => {
-    importFile.click();
-});
-
-importFile.addEventListener('change', async () => {
-    const file = importFile.files[0];
-
-    if (!file) {
-        return;
-    }
-
-    await importData(file);
-
-    // Allow selecting the same file again later
-    importFile.value = '';
-});
-
-// Set today's date
-dateInput.value = new Date().toISOString().split('T')[0];
+// --------------------------------------------------
+// Load measurements
+// --------------------------------------------------
 
 async function loadMeasurements() {
+
     const measurements = await db.measurements
         .orderBy('date')
         .reverse()
@@ -436,12 +324,20 @@ async function loadMeasurements() {
     tableBody.innerHTML = '';
 
     for (const measurement of measurements) {
+
         const row = document.createElement('tr');
 
         row.innerHTML = `
             <td>${measurement.date}</td>
-            <td>${measurement.weight.toFixed(1)} kg</td>
-            <td>${measurement.waist.toFixed(1)} cm</td>
+
+            <td>
+                ${measurement.weight.toFixed(1)} kg
+            </td>
+
+            <td>
+                ${measurement.waist.toFixed(1)} cm
+            </td>
+
             <td>
                 <button
                     type="button"
@@ -467,24 +363,36 @@ async function loadMeasurements() {
     updateCharts(measurements);
 }
 
+
+// --------------------------------------------------
+// Charts
+// --------------------------------------------------
+
 function updateCharts(measurements) {
-    const sortedMeasurements = [...measurements].sort(
-        (a, b) => a.date.localeCompare(b.date)
-    );
 
-    const labels = sortedMeasurements.map(
-        measurement => measurement.date
-    );
+    const sortedMeasurements =
+        [...measurements].sort(
+            (a, b) => a.date.localeCompare(b.date)
+        );
 
-    const weights = sortedMeasurements.map(
-        measurement => measurement.weight
-    );
+    const labels =
+        sortedMeasurements.map(
+            measurement => measurement.date
+        );
 
-    const waists = sortedMeasurements.map(
-        measurement => measurement.waist
-    );
+    const weights =
+        sortedMeasurements.map(
+            measurement => measurement.weight
+        );
 
-    // Destroy previous charts before creating new ones
+    const waists =
+        sortedMeasurements.map(
+            measurement => measurement.waist
+        );
+
+
+    // Destroy previous charts
+
     if (weightChart) {
         weightChart.destroy();
     }
@@ -493,13 +401,19 @@ function updateCharts(measurements) {
         waistChart.destroy();
     }
 
-    const weightCanvas = document.querySelector('#weight-chart');
-    const waistCanvas = document.querySelector('#waist-chart');
+
+    // Weight chart
+
+    const weightCanvas =
+        document.querySelector('#weight-chart');
 
     weightChart = new Chart(weightCanvas, {
+
         type: 'line',
+
         data: {
             labels,
+
             datasets: [
                 {
                     label: 'Weight (kg)',
@@ -508,9 +422,11 @@ function updateCharts(measurements) {
                 }
             ]
         },
+
         options: {
             responsive: true,
             maintainAspectRatio: false,
+
             scales: {
                 y: {
                     title: {
@@ -520,12 +436,22 @@ function updateCharts(measurements) {
                 }
             }
         }
+
     });
 
+
+    // Waist chart
+
+    const waistCanvas =
+        document.querySelector('#waist-chart');
+
     waistChart = new Chart(waistCanvas, {
+
         type: 'line',
+
         data: {
             labels,
+
             datasets: [
                 {
                     label: 'Waist (cm)',
@@ -534,9 +460,11 @@ function updateCharts(measurements) {
                 }
             ]
         },
+
         options: {
             responsive: true,
             maintainAspectRatio: false,
+
             scales: {
                 y: {
                     title: {
@@ -546,23 +474,42 @@ function updateCharts(measurements) {
                 }
             }
         }
+
     });
 }
 
+
+// --------------------------------------------------
+// Reset form
+// --------------------------------------------------
+
 function resetForm() {
+
     form.reset();
 
-    dateInput.value = new Date().toISOString().split('T')[0];
+    dateInput.value =
+        new Date().toISOString().split('T')[0];
 
     editingId = null;
 
-    formTitle.textContent = 'Add measurement';
-    saveButton.textContent = 'Save measurement';
+    formTitle.textContent =
+        'Add measurement';
+
+    saveButton.textContent =
+        'Save measurement';
+
     cancelButton.hidden = true;
 }
 
+
+// --------------------------------------------------
+// Edit measurement
+// --------------------------------------------------
+
 async function editMeasurement(id) {
-    const measurement = await db.measurements.get(id);
+
+    const measurement =
+        await db.measurements.get(id);
 
     if (!measurement) {
         return;
@@ -574,8 +521,12 @@ async function editMeasurement(id) {
     weightInput.value = measurement.weight;
     waistInput.value = measurement.waist;
 
-    formTitle.textContent = 'Edit measurement';
-    saveButton.textContent = 'Update measurement';
+    formTitle.textContent =
+        'Edit measurement';
+
+    saveButton.textContent =
+        'Update measurement';
+
     cancelButton.hidden = false;
 
     window.scrollTo({
@@ -584,16 +535,24 @@ async function editMeasurement(id) {
     });
 }
 
+
+// --------------------------------------------------
+// Delete measurement
+// --------------------------------------------------
+
 async function deleteMeasurement(id) {
-    const measurement = await db.measurements.get(id);
+
+    const measurement =
+        await db.measurements.get(id);
 
     if (!measurement) {
         return;
     }
 
-    const confirmed = confirm(
-        `Delete measurement from ${measurement.date}?`
-    );
+    const confirmed =
+        confirm(
+            `Delete measurement from ${measurement.date}?`
+        );
 
     if (!confirmed) {
         return;
@@ -608,27 +567,42 @@ async function deleteMeasurement(id) {
     await loadMeasurements();
 }
 
-form.addEventListener('submit', async (event) => {
+
+// --------------------------------------------------
+// Add / Update measurement
+// --------------------------------------------------
+
+form.addEventListener('submit', async event => {
+
     event.preventDefault();
 
     const date = dateInput.value;
-    const weight = Number(weightInput.value);
-    const waist = Number(waistInput.value);
+
+    const weight =
+        Number(weightInput.value);
+
+    const waist =
+        Number(waistInput.value);
+
 
     if (editingId === null) {
-        // Add new measurement
+
         await db.measurements.add({
             date,
             weight,
             waist
         });
+
     } else {
-        // Update existing measurement
-        await db.measurements.update(editingId, {
-            date,
-            weight,
-            waist
-        });
+
+        await db.measurements.update(
+            editingId,
+            {
+                date,
+                weight,
+                waist
+            }
+        );
     }
 
     resetForm();
@@ -636,27 +610,478 @@ form.addEventListener('submit', async (event) => {
     await loadMeasurements();
 });
 
-cancelButton.addEventListener('click', () => {
-    resetForm();
-});
 
-tableBody.addEventListener('click', async (event) => {
-    const button = event.target.closest('button');
+// --------------------------------------------------
+// Cancel editing
+// --------------------------------------------------
 
-    if (!button) {
-        return;
+cancelButton.addEventListener(
+    'click',
+    () => {
+        resetForm();
     }
+);
 
-    const id = Number(button.dataset.id);
 
-    if (button.classList.contains('edit-button')) {
-        await editMeasurement(id);
+// --------------------------------------------------
+// Edit / Delete buttons
+// --------------------------------------------------
+
+tableBody.addEventListener(
+    'click',
+    async event => {
+
+        const button =
+            event.target.closest('button');
+
+        if (!button) {
+            return;
+        }
+
+        const id =
+            Number(button.dataset.id);
+
+
+        if (
+            button.classList.contains(
+                'edit-button'
+            )
+        ) {
+            await editMeasurement(id);
+        }
+
+
+        if (
+            button.classList.contains(
+                'delete-button'
+            )
+        ) {
+            await deleteMeasurement(id);
+        }
+
     }
+);
 
-    if (button.classList.contains('delete-button')) {
-        await deleteMeasurement(id);
+
+// --------------------------------------------------
+// JSON Export
+// --------------------------------------------------
+
+async function exportData() {
+
+    const measurements =
+        await db.measurements.toArray();
+
+    const data = {
+
+        version: 1,
+
+        exportedAt:
+            new Date().toISOString(),
+
+        measurements
+
+    };
+
+    const json =
+        JSON.stringify(data, null, 2);
+
+    const blob =
+        new Blob(
+            [json],
+            {
+                type: 'application/json'
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement('a');
+
+    link.href = url;
+
+    link.download =
+        `measurements-${
+            new Date()
+                .toISOString()
+                .split('T')[0]
+        }.json`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(url);
+}
+
+
+// --------------------------------------------------
+// JSON Import
+// --------------------------------------------------
+
+async function importData(file) {
+
+    try {
+
+        const text =
+            await file.text();
+
+        const data =
+            JSON.parse(text);
+
+
+        if (
+            !data.measurements ||
+            !Array.isArray(data.measurements)
+        ) {
+            throw new Error(
+                'Invalid file format.'
+            );
+        }
+
+
+        let imported = 0;
+        let skipped = 0;
+
+
+        for (
+            const measurement
+            of data.measurements
+        ) {
+
+            if (
+                typeof measurement.date !== 'string' ||
+                typeof measurement.weight !== 'number' ||
+                typeof measurement.waist !== 'number'
+            ) {
+                skipped++;
+                continue;
+            }
+
+
+            if (
+                measurement.id !== undefined
+            ) {
+
+                const existing =
+                    await db.measurements.get(
+                        measurement.id
+                    );
+
+                if (existing) {
+                    skipped++;
+                    continue;
+                }
+            }
+
+
+            await db.measurements.add({
+
+                date:
+                    measurement.date,
+
+                weight:
+                    measurement.weight,
+
+                waist:
+                    measurement.waist
+
+            });
+
+            imported++;
+        }
+
+
+        await loadMeasurements();
+
+
+        alert(
+            `Import completed.\n\n` +
+            `Imported: ${imported}\n` +
+            `Skipped: ${skipped}`
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            'Could not import the file.\n\n' +
+            'Please make sure it is a valid ' +
+            'measurements JSON file.'
+        );
     }
-});
+}
 
-// Load existing measurements when application starts
+
+// --------------------------------------------------
+// CSV Export
+// --------------------------------------------------
+
+async function exportCsv() {
+
+    const measurements =
+        await db.measurements
+            .orderBy('date')
+            .toArray();
+
+
+    const header =
+        'Date,Weight (kg),Waist (cm)';
+
+
+    const rows =
+        measurements.map(measurement => {
+
+            return [
+                measurement.date,
+                measurement.weight,
+                measurement.waist
+            ].join(',');
+
+        });
+
+
+    const csv =
+        [header, ...rows].join('\n');
+
+
+    const blob =
+        new Blob(
+            ['\uFEFF' + csv],
+            {
+                type:
+                    'text/csv;charset=utf-8;'
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement('a');
+
+    link.href = url;
+
+    link.download =
+        `measurements-${
+            new Date()
+                .toISOString()
+                .split('T')[0]
+        }.csv`;
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(url);
+}
+
+
+// --------------------------------------------------
+// CSV Import
+// --------------------------------------------------
+
+async function importCsv(file) {
+
+    try {
+
+        const text =
+            await file.text();
+
+
+        const lines =
+            text
+                .replace(/^\uFEFF/, '')
+                .split(/\r?\n/)
+                .filter(
+                    line => line.trim() !== ''
+                );
+
+
+        if (lines.length < 2) {
+            throw new Error(
+                'CSV file is empty.'
+            );
+        }
+
+
+        const dataLines =
+            lines.slice(1);
+
+
+        let imported = 0;
+        let skipped = 0;
+
+
+        for (const line of dataLines) {
+
+            const columns =
+                line.split(',');
+
+
+            if (columns.length < 3) {
+                skipped++;
+                continue;
+            }
+
+
+            const date =
+                columns[0].trim();
+
+            const weight =
+                Number(columns[1].trim());
+
+            const waist =
+                Number(columns[2].trim());
+
+
+            if (
+                !date ||
+                !Number.isFinite(weight) ||
+                !Number.isFinite(waist)
+            ) {
+                skipped++;
+                continue;
+            }
+
+
+            const existing =
+                await db.measurements
+                    .where('date')
+                    .equals(date)
+                    .filter(
+                        measurement =>
+                            measurement.weight === weight &&
+                            measurement.waist === waist
+                    )
+                    .first();
+
+
+            if (existing) {
+                skipped++;
+                continue;
+            }
+
+
+            await db.measurements.add({
+
+                date,
+                weight,
+                waist
+
+            });
+
+            imported++;
+        }
+
+
+        await loadMeasurements();
+
+
+        alert(
+            `CSV import completed.\n\n` +
+            `Imported: ${imported}\n` +
+            `Skipped: ${skipped}`
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            'Could not import the CSV file.\n\n' +
+            'Please make sure it has the correct format.'
+        );
+    }
+}
+
+
+// --------------------------------------------------
+// Data buttons
+// --------------------------------------------------
+
+exportButton.addEventListener(
+    'click',
+    async () => {
+        await exportData();
+    }
+);
+
+
+importButton.addEventListener(
+    'click',
+    () => {
+        importFile.click();
+    }
+);
+
+
+importFile.addEventListener(
+    'change',
+    async () => {
+
+        const file =
+            importFile.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        await importData(file);
+
+        importFile.value = '';
+    }
+);
+
+
+exportCsvButton.addEventListener(
+    'click',
+    async () => {
+        await exportCsv();
+    }
+);
+
+
+importCsvButton.addEventListener(
+    'click',
+    () => {
+        importCsvFile.click();
+    }
+);
+
+
+importCsvFile.addEventListener(
+    'change',
+    async () => {
+
+        const file =
+            importCsvFile.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        await importCsv(file);
+
+        importCsvFile.value = '';
+    }
+);
+
+
+// --------------------------------------------------
+// Start application
+// --------------------------------------------------
+
 loadMeasurements();
