@@ -127,8 +127,8 @@ app.innerHTML = `
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Weight</th>
-                                <th>Waist</th>
+                                <th>Weight (kg)</th>
+                                <th>Waist (cm)</th>
                                 <th id="actions-header" hidden>Actions</th>
                             </tr>
                         </thead>
@@ -368,11 +368,11 @@ async function loadMeasurements() {
             <td>${measurement.date}</td>
 
             <td>
-                ${measurement.weight.toFixed(1)} kg
+                ${measurement.weight.toFixed(1)}
             </td>
 
             <td>
-                ${measurement.waist.toFixed(1)} cm
+                ${measurement.waist.toFixed(1)}
             </td>
 
             
