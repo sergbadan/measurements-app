@@ -108,6 +108,20 @@ app.innerHTML = `
             <section class="card">
                 <h2>Measurements</h2>
 
+                <label class="visibility-switch">
+        <span>Show Edit/Delete buttons</span>
+
+        <input
+            type="checkbox"
+            id="show-actions-toggle"
+            class="switch-input"
+            role="switch"
+            aria-checked="false"
+        >
+
+        <span class="switch-track" aria-hidden="true"></span>
+        <span id="switch-status" class="switch-status">Off</span>
+    </label>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -115,7 +129,7 @@ app.innerHTML = `
                                 <th>Date</th>
                                 <th>Weight</th>
                                 <th>Waist</th>
-                                <th>Actions</th>
+                                <th id="actions-header" hidden>Actions</th>
                             </tr>
                         </thead>
 
@@ -218,7 +232,14 @@ const weightInput = document.querySelector('#weight');
 const waistInput = document.querySelector('#waist');
 
 const tableBody = document.querySelector('#measurements-table');
+const showActionsToggle =
+    document.querySelector('#show-actions-toggle');
 
+const actionsHeader =
+    document.querySelector('#actions-header');
+
+const switchStatus =
+    document.querySelector('#switch-status');
 const formTitle = document.querySelector('#form-title');
 const saveButton = document.querySelector('#save-button');
 const cancelButton = document.querySelector('#cancel-button');
@@ -296,6 +317,35 @@ tabButtons.forEach(button => {
 dateInput.value =
     new Date().toISOString().split('T')[0];
 
+// --------------------------------------------------
+// Show / hide Edit and Delete buttons
+// --------------------------------------------------
+
+function updateActionVisibility() {
+
+    const showActions = showActionsToggle.checked;
+
+    actionsHeader.hidden = !showActions;
+
+    tableBody
+        .querySelectorAll('.actions-cell')
+        .forEach(cell => {
+            cell.hidden = !showActions;
+        });
+
+    switchStatus.textContent =
+        showActions ? 'On' : 'Off';
+
+    showActionsToggle.setAttribute(
+        'aria-checked',
+        String(showActions)
+    );
+}
+
+showActionsToggle.addEventListener(
+    'change',
+    updateActionVisibility
+);
 
 // --------------------------------------------------
 // Load measurements
@@ -325,28 +375,31 @@ async function loadMeasurements() {
                 ${measurement.waist.toFixed(1)} cm
             </td>
 
-            <td>
-                <button
-                    type="button"
-                    class="action-button edit-button"
-                    data-id="${measurement.id}"
-                >
-                    Edit
-                </button>
+            
+<td class="actions-cell" hidden>
+    <button
+        type="button"
+        class="action-button edit-button"
+        data-id="${measurement.id}"
+    >
+        Edit
+    </button>
 
-                <button
-                    type="button"
-                    class="action-button delete-button"
-                    data-id="${measurement.id}"
-                >
-                    Delete
-                </button>
-            </td>
+    <button
+        type="button"
+        class="action-button delete-button"
+        data-id="${measurement.id}"
+    >
+        Delete
+    </button>
+</td>
+
         `;
 
         tableBody.appendChild(row);
     }
 
+    updateActionVisibility();
     updateChart(measurements);
 }
 
