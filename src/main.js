@@ -145,17 +145,21 @@ app.innerHTML = `
         <section id="charts-tab" class="tab-content">
 
             <section class="card">
-                <h2>Body measurements trend</h2>
-                <div class="chart-period">
-                    <label for="chart-period-select">Period:</label>
-                    <select id="chart-period-select">
-                        <option value="30">Last 30 days</option>
-                        <option value="90" selected>Last 3 months</option>
-                        <option value="180">Last 6 months</option>
-                        <option value="365">Last year</option>
-                        <option value="all">All data</option>
-                    </select>
-                </div>
+                
+<div class="chart-header">
+    <h2>Trends</h2>
+    <div class="chart-period">
+        <label for="chart-period-select">Period:</label>
+        <select id="chart-period-select">
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 3 months</option>
+            <option value="180">Last 6 months</option>
+            <option value="365">Last year</option>
+            <option value="all">All data</option>
+        </select>
+    </div>
+</div>
+
                 <div class="chart-container">
                     <canvas id="body-chart"></canvas>
                 </div>
