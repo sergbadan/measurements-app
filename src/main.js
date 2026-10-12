@@ -146,7 +146,16 @@ app.innerHTML = `
 
             <section class="card">
                 <h2>Body measurements trend</h2>
-
+                <div class="chart-period">
+                    <label for="chart-period-select">Period:</label>
+                    <select id="chart-period-select">
+                        <option value="30">Last 30 days</option>
+                        <option value="90" selected>Last 3 months</option>
+                        <option value="180">Last 6 months</option>
+                        <option value="365">Last year</option>
+                        <option value="all">All data</option>
+                    </select>
+                </div>
                 <div class="chart-container">
                     <canvas id="body-chart"></canvas>
                 </div>
@@ -232,6 +241,8 @@ const weightInput = document.querySelector('#weight');
 const waistInput = document.querySelector('#waist');
 
 const tableBody = document.querySelector('#measurements-table');
+const chartPeriodSelect =
+    document.querySelector('#chart-period-select');
 const showActionsToggle =
     document.querySelector('#show-actions-toggle');
 
@@ -415,20 +426,47 @@ function updateChart(measurements) {
             (a, b) => a.date.localeCompare(b.date)
         );
 
-    const labels =
-        sortedMeasurements.map(
-            measurement => measurement.date
-        );
+    const selectedPeriod = chartPeriodSelect.value;
 
-    const weights =
-        sortedMeasurements.map(
-            measurement => measurement.weight
-        );
+let filteredMeasurements = sortedMeasurements;
 
-    const waists =
-        sortedMeasurements.map(
-            measurement => measurement.waist
+if (selectedPeriod !== 'all') {
+    const days = Number(selectedPeriod);
+
+    const latestDate = new Date(
+        `${sortedMeasurements[sortedMeasurements.length - 1]?.date}T00:00:00`
+    );
+
+    if (sortedMeasurements.length > 0) {
+        const startDate = new Date(latestDate);
+        startDate.setDate(startDate.getDate() - days);
+
+        filteredMeasurements = sortedMeasurements.filter(
+            measurement => {
+                const measurementDate = new Date(
+                    `${measurement.date}T00:00:00`
+                );
+
+                return (
+                    measurementDate >= startDate &&
+                    measurementDate <= latestDate
+                );
+            }
         );
+    }
+}
+
+    const labels = filteredMeasurements.map(
+    measurement => measurement.date
+);
+
+const weights = filteredMeasurements.map(
+    measurement => measurement.weight
+);
+
+const waists = filteredMeasurements.map(
+    measurement => measurement.waist
+);
 
 
     // Destroy previous chart
@@ -555,6 +593,13 @@ function updateChart(measurements) {
     });
 }
 
+chartPeriodSelect.addEventListener('change', async () => {
+    const measurements = await db.measurements
+        .orderBy('date')
+        .toArray();
+
+    updateChart(measurements);
+});
 
 // --------------------------------------------------
 // Reset form
