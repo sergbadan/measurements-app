@@ -8,6 +8,11 @@ db.version(1).stores({
     measurements: '++id, date'
 });
 
+db.version(2).stores({
+    measurements: '++id, date',
+    appMeta: 'key'
+});
+
 const app = document.querySelector('#app');
 
 app.innerHTML = `
@@ -171,6 +176,18 @@ app.innerHTML = `
         <section id="data-tab" class="tab-content">
 
             <section class="card">
+                <h2>Change statistics</h2>
+                <p class="data-description" id="stats-baseline-label">
+                    Changes since the latest import or export.
+                </p>
+                <div class="change-stats" aria-live="polite">
+                    <div class="stat-item"><strong id="stat-added">0</strong><span>Added new</span></div>
+                    <div class="stat-item"><strong id="stat-edited">0</strong><span>Edited</span></div>
+                    <div class="stat-item"><strong id="stat-deleted">0</strong><span>Deleted</span></div>
+                </div>
+            </section>
+
+            <section class="card">
                 <h2>Data management</h2>
 
                 <p class="data-description">
@@ -230,8 +247,100 @@ app.innerHTML = `
 
         </section>
 
+        <div id="import-review-overlay" class="import-modal-overlay" hidden>
+            <section class="import-modal card" role="dialog" aria-modal="true" aria-labelledby="import-review-title">
+                <h2 id="import-review-title">Review import conflicts</h2>
+                <p id="import-review-summary" class="data-description"></p>
+                <div id="import-conflicts-list" class="import-conflicts-list"></div>
+                <p class="data-description">
+                    Records with dates not present in the app will be added automatically.
+                    Existing records absent from the file will remain unchanged.
+                    Empty imported fields keep existing values.
+                </p>
+                <div class="data-actions">
+                    <button type="button" id="confirm-import-button">Confirm import</button>
+                    <button type="button" id="cancel-import-review-button" class="secondary-button">Cancel</button>
+                </div>
+            </section>
+        </div>
+
     </div>
 `;
+
+const importAndStatsStyles = document.createElement('style');
+importAndStatsStyles.textContent = `
+.change-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.85rem;
+    border-radius: 0.65rem;
+    background: var(--card-secondary, #f3f4f6);
+    text-align: center;
+}
+.stat-item strong { font-size: 1.5rem; }
+.stat-item span { font-size: 0.85rem; }
+.import-modal-overlay[hidden] { display: none !important; }
+.import-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.55);
+}
+.import-modal {
+    width: min(760px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--card-background, #fff);
+}
+.import-conflicts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+.import-conflict {
+    border: 1px solid #d1d5db;
+    border-radius: 0.65rem;
+    padding: 1rem;
+}
+.import-conflict h3 { margin-top: 0; margin-bottom: 0.35rem; }
+.conflict-field { margin-top: 0.85rem; }
+.conflict-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 0.4rem;
+}
+.conflict-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-weight: normal;
+}
+.conflict-option input { margin-top: 0.2rem; }
+.import-modal .data-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+@media (max-width: 420px) {
+    .change-stats { gap: 0.4rem; }
+    .stat-item { padding: 0.65rem 0.3rem; }
+    .stat-item strong { font-size: 1.25rem; }
+    .stat-item span { font-size: 0.75rem; }
+}
+`;
+document.head.appendChild(importAndStatsStyles);
 
 
 // --------------------------------------------------
@@ -272,6 +381,16 @@ const importCsvButton =
 const importCsvFile =
     document.querySelector('#import-csv-file');
 
+const statAdded = document.querySelector('#stat-added');
+const statEdited = document.querySelector('#stat-edited');
+const statDeleted = document.querySelector('#stat-deleted');
+const statsBaselineLabel = document.querySelector('#stats-baseline-label');
+const importReviewOverlay = document.querySelector('#import-review-overlay');
+const importReviewSummary = document.querySelector('#import-review-summary');
+const importConflictsList = document.querySelector('#import-conflicts-list');
+const confirmImportButton = document.querySelector('#confirm-import-button');
+const cancelImportReviewButton = document.querySelector('#cancel-import-review-button');
+
 
 // --------------------------------------------------
 // Variables
@@ -280,6 +399,7 @@ const importCsvFile =
 let editingId = null;
 
 let bodyChart = null;
+let pendingImport = null;
 
 
 // --------------------------------------------------
@@ -416,6 +536,7 @@ async function loadMeasurements() {
 
     updateActionVisibility();
     updateChart(measurements);
+    await updateChangeStats();
 }
 
 
@@ -790,351 +911,501 @@ tableBody.addEventListener(
 
 
 // --------------------------------------------------
-// JSON Export
-// --------------------------------------------------
+// Change statistics and baseline
 
-async function exportData() {
+function normalizeSnapshot(records) {
+    return records
+        .map(record => ({
+            id: record.id,
+            date: record.date,
+            weight: record.weight,
+            waist: record.waist
+        }))
+        .sort((a, b) => Number(a.id) - Number(b.id));
+}
 
-    const measurements =
-        await db.measurements.toArray();
+async function setCurrentBaseline(label) {
+    const records = await db.measurements.toArray();
+    await db.appMeta.put({
+        key: 'baseline',
+        label,
+        timestamp: new Date().toISOString(),
+        records: normalizeSnapshot(records)
+    });
+    await updateChangeStats();
+}
 
-    const data = {
+async function ensureBaseline() {
+    const baseline = await db.appMeta.get('baseline');
+    if (!baseline) {
+        const records = await db.measurements.toArray();
+        await db.appMeta.put({
+            key: 'baseline',
+            label: 'Initial baseline',
+            timestamp: new Date().toISOString(),
+            records: normalizeSnapshot(records)
+        });
+    }
+}
 
-        version: 1,
+async function updateChangeStats() {
+    const baseline = await db.appMeta.get('baseline');
+    const baselineRecords = baseline?.records ?? [];
+    const currentRecords = await db.measurements.toArray();
 
-        exportedAt:
-            new Date().toISOString(),
+    const baselineById = new Map(baselineRecords.map(record => [String(record.id), record]));
+    const currentById = new Map(currentRecords.map(record => [String(record.id), record]));
 
-        measurements
+    let added = 0;
+    let edited = 0;
+    let deleted = 0;
 
-    };
+    for (const record of currentRecords) {
+        const original = baselineById.get(String(record.id));
+        if (!original) {
+            added++;
+        } else if (
+            original.date !== record.date ||
+            original.weight !== record.weight ||
+            original.waist !== record.waist
+        ) {
+            edited++;
+        }
+    }
 
-    const json =
-        JSON.stringify(data, null, 2);
+    for (const record of baselineRecords) {
+        if (!currentById.has(String(record.id))) deleted++;
+    }
 
-    const blob =
-        new Blob(
-            [json],
-            {
-                type: 'application/json'
-            }
-        );
+    statAdded.textContent = String(added);
+    statEdited.textContent = String(edited);
+    statDeleted.textContent = String(deleted);
 
-    const url =
-        URL.createObjectURL(blob);
-
-    const link =
-        document.createElement('a');
-
-    link.href = url;
-
-    link.download =
-        `measurements-${
-            new Date()
-                .toISOString()
-                .split('T')[0]
-        }.json`;
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    link.remove();
-
-    URL.revokeObjectURL(url);
+    if (baseline) {
+        const date = new Date(baseline.timestamp);
+        const formattedDate = Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
+        statsBaselineLabel.textContent =
+            `Changes since ${baseline.label.toLowerCase()}${formattedDate ? ` (${formattedDate})` : ''}.`;
+    }
 }
 
 
-// --------------------------------------------------
-// JSON Import
-// --------------------------------------------------
+// Export helper
+function downloadTextFile(contents, mimeType, filename) {
+    const blob = new Blob([contents], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
 
-async function importData(file) {
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 
-    try {
-
-        const text =
-            await file.text();
-
-        const data =
-            JSON.parse(text);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 
-        if (
-            !data.measurements ||
-            !Array.isArray(data.measurements)
-        ) {
-            throw new Error(
-                'Invalid file format.'
-            );
+// JSON Export
+async function exportData() {
+    const measurements = await db.measurements.toArray();
+    const data = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        measurements
+    };
+
+    const filename = `measurements-${new Date().toISOString().split('T')[0]}.json`;
+    downloadTextFile(JSON.stringify(data, null, 2), 'application/json', filename);
+    await setCurrentBaseline('JSON export');
+}
+
+
+// Import parsing and conflict review
+
+function validDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return false;
+    }
+
+    // Validate in UTC to avoid local time-zone shifts.
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    return date.getUTCFullYear() === year &&
+        date.getUTCMonth() === month - 1 &&
+        date.getUTCDate() === day;
+}
+
+function parseOptionalNumber(value) {
+    if (value === null || value === undefined || String(value).trim() === '') return null;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : undefined;
+}
+
+function normalizeImportedRecord(record, rowNumber) {
+    if (!record || !validDate(String(record.date ?? ''))) {
+        return { error: `Row ${rowNumber}: invalid date.` };
+    }
+
+    const weight = parseOptionalNumber(record.weight);
+    const waist = parseOptionalNumber(record.waist);
+
+    if (weight === undefined || waist === undefined) {
+        return { error: `Row ${rowNumber}: weight and waist must be non-negative numbers or empty.` };
+    }
+    if (weight === null && waist === null) {
+        return { error: `Row ${rowNumber}: both measurements are empty.` };
+    }
+
+    return {
+        record: {
+            date: String(record.date),
+            weight,
+            waist,
+            sourceRow: rowNumber
+        }
+    };
+}
+
+function parseJsonImport(text) {
+    const data = JSON.parse(text);
+    if (!data || !Array.isArray(data.measurements)) {
+        throw new Error('Invalid JSON file: expected a measurements array.');
+    }
+
+    const records = [];
+    const errors = [];
+    data.measurements.forEach((item, index) => {
+        const result = normalizeImportedRecord(item, index + 1);
+        if (result.record) records.push(result.record);
+        else errors.push(result.error);
+    });
+    return { records, errors };
+}
+
+function parseCsvImport(text) {
+    const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length < 2) throw new Error('CSV file is empty or contains only a header.');
+
+    const records = [];
+    const errors = [];
+    lines.slice(1).forEach((line, index) => {
+        // The app's own CSV format contains no commas inside field values.
+        const columns = line.split(',');
+        if (columns.length < 3) {
+            errors.push(`Row ${index + 2}: expected 3 columns.`);
+            return;
         }
 
+        const result = normalizeImportedRecord({
+            date: columns[0].trim(),
+            weight: columns[1].trim(),
+            waist: columns[2].trim()
+        }, index + 2);
 
-        let imported = 0;
-        let skipped = 0;
+        if (result.record) records.push(result.record);
+        else errors.push(result.error);
+    });
+    return { records, errors };
+}
 
+function fieldCandidates(group, field) {
+    const candidates = [];
 
-        for (
-            const measurement
-            of data.measurements
-        ) {
+    for (const existing of group.existing) {
+        const value = existing[field];
+        if (value !== null && value !== undefined && value !== '') {
+            candidates.push({
+                source: `Existing record${group.existing.length > 1 ? ` (ID ${existing.id})` : ''}`,
+                kind: 'existing',
+                value
+            });
+        }
+    }
 
-            if (
-                typeof measurement.date !== 'string' ||
-                typeof measurement.weight !== 'number' ||
-                typeof measurement.waist !== 'number'
-            ) {
-                skipped++;
+    for (const imported of group.imported) {
+        const value = imported[field];
+        if (value !== null && value !== undefined) {
+            candidates.push({
+                source: `Imported row ${imported.sourceRow}`,
+                kind: 'imported',
+                value
+            });
+        }
+    }
+
+    return candidates.filter((candidate, index, all) =>
+        all.findIndex(item => item.value === candidate.value) === index
+    );
+}
+
+async function prepareImport(records, errors, fileType) {
+    const existingRecords = await db.measurements.toArray();
+    const existingByDate = new Map();
+
+    for (const record of existingRecords) {
+        if (!existingByDate.has(record.date)) existingByDate.set(record.date, []);
+        existingByDate.get(record.date).push(record);
+    }
+
+    const importedByDate = new Map();
+    for (const record of records) {
+        if (!importedByDate.has(record.date)) importedByDate.set(record.date, []);
+        importedByDate.get(record.date).push(record);
+    }
+
+    const groups = [];
+    const allDates = new Set([...existingByDate.keys(), ...importedByDate.keys()]);
+
+    for (const date of [...allDates].sort()) {
+        const existing = existingByDate.get(date) ?? [];
+        const imported = importedByDate.get(date) ?? [];
+        if (imported.length === 0) continue;
+
+        const group = { date, existing, imported };
+        group.weightCandidates = fieldCandidates(group, 'weight');
+        group.waistCandidates = fieldCandidates(group, 'waist');
+
+        
+group.needsReview =
+    group.weightCandidates.length > 1 ||
+    group.waistCandidates.length > 1;
+
+const hasWeight = group.weightCandidates.length > 0;
+const hasWaist = group.waistCandidates.length > 0;
+
+if (existing.length > 0 || (hasWeight && hasWaist)) {
+    groups.push(group);
+} else {
+    errors.push(
+        `Date ${date}: a new record needs both weight and waist; it will be skipped.`
+    );
+}
+
+    }
+
+    pendingImport = { groups, errors, fileType };
+    renderImportReview();
+}
+
+function renderImportReview() {
+    if (!pendingImport) return;
+
+    const { groups, errors, fileType } = pendingImport;
+    importConflictsList.innerHTML = '';
+
+    const conflicts = groups.filter(group => group.needsReview);
+
+    importReviewSummary.textContent =
+        `${fileType} import: ${groups.length} date(s) to process, ` +
+        `${conflicts.length} conflict(s), ${errors.length} skipped/invalid row(s). ` +
+        'Choose the value to keep for each field.';
+
+    for (const group of conflicts) {
+        const groupIndex = groups.indexOf(group);
+        const section = document.createElement('section');
+        section.className = 'import-conflict';
+        section.innerHTML = `
+            <h3>${group.date}</h3>
+            <p class="data-description">
+                ${group.existing.length ? 'Date already exists in the app.' : 'Multiple imported rows have this date.'}
+            </p>
+            <div class="conflict-field"><strong>Weight (kg)</strong><div class="conflict-options" data-field="weight"></div></div>
+            <div class="conflict-field"><strong>Waist (cm)</strong><div class="conflict-options" data-field="waist"></div></div>
+        `;
+
+        for (const field of ['weight', 'waist']) {
+            const optionsContainer = section.querySelector(`[data-field="${field}"]`);
+            const candidates = group[`${field}Candidates`];
+
+            if (candidates.length === 0) {
+                optionsContainer.textContent = 'No imported value; the existing value will be kept if available.';
                 continue;
             }
 
+            let defaultIndex = candidates.findIndex(candidate => candidate.kind === 'existing');
+            if (defaultIndex < 0) defaultIndex = 0;
 
-            if (
-                measurement.id !== undefined
-            ) {
+            candidates.forEach((candidate, candidateIndex) => {
+                const label = document.createElement('label');
+                label.className = 'conflict-option';
 
-                const existing =
-                    await db.measurements.get(
-                        measurement.id
-                    );
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `conflict-${groupIndex}-${field}`;
+                radio.value = String(candidateIndex);
+                radio.checked = candidateIndex === defaultIndex;
+
+                const text = document.createElement('span');
+                text.textContent = `${candidate.value} — ${candidate.source}`;
+                label.append(radio, text);
+                optionsContainer.appendChild(label);
+            });
+        }
+
+        importConflictsList.appendChild(section);
+    }
+
+    if (conflicts.length === 0) {
+        importConflictsList.innerHTML = '<p>No choices are needed. Records will be processed automatically.</p>';
+    }
+
+    if (errors.length > 0) {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary');
+        summary.textContent = `Skipped/invalid rows (${errors.length})`;
+        const list = document.createElement('ul');
+
+        errors.slice(0, 30).forEach(error => {
+            const item = document.createElement('li');
+            item.textContent = error;
+            list.appendChild(item);
+        });
+        if (errors.length > 30) {
+            const item = document.createElement('li');
+            item.textContent = `…and ${errors.length - 30} more.`;
+            list.appendChild(item);
+        }
+
+        details.append(summary, list);
+        importConflictsList.appendChild(details);
+    }
+
+    confirmImportButton.disabled = groups.length === 0;
+    importReviewOverlay.hidden = false;
+}
+
+function selectedCandidate(groupIndex, field) {
+    const group = pendingImport.groups[groupIndex];
+    const candidates = group[`${field}Candidates`];
+    const radio = importConflictsList.querySelector(
+        `input[name="conflict-${groupIndex}-${field}"]:checked`
+    );
+
+    if (radio) return candidates[Number(radio.value)] ?? null;
+    return candidates.find(candidate => candidate.kind === 'existing') ?? candidates[0] ?? null;
+}
+
+async function confirmImport() {
+    if (!pendingImport) return;
+
+    const { groups, errors, fileType } = pendingImport;
+    let added = 0;
+    let edited = 0;
+    let skipped = errors.length;
+
+    try {
+        await db.transaction('rw', db.measurements, db.appMeta, async () => {
+            for (const [groupIndex, group] of groups.entries()) {
+                
+const existing = group.existing[0] ?? null;
+const needsReview = group.needsReview;
+
+const weightChoice = needsReview
+    ? selectedCandidate(groupIndex, 'weight')
+    : group.weightCandidates[0];
+
+const waistChoice = needsReview
+    ? selectedCandidate(groupIndex, 'waist')
+    : group.waistCandidates[0];
+
+const weight = weightChoice?.value ?? existing?.weight ?? null;
+const waist = waistChoice?.value ?? existing?.waist ?? null;
+
 
                 if (existing) {
+                    const nextWeight = weight ?? existing.weight;
+                    const nextWaist = waist ?? existing.waist;
+                    if (nextWeight !== existing.weight || nextWaist !== existing.waist) {
+                        await db.measurements.update(existing.id, {
+                            weight: nextWeight,
+                            waist: nextWaist
+                        });
+                        edited++;
+                    }
+                } else if (weight !== null && weight !== undefined &&
+                           waist !== null && waist !== undefined) {
+                    await db.measurements.add({ date: group.date, weight, waist });
+                    added++;
+                } else {
                     skipped++;
-                    continue;
                 }
             }
 
-
-            await db.measurements.add({
-
-                date:
-                    measurement.date,
-
-                weight:
-                    measurement.weight,
-
-                waist:
-                    measurement.waist
-
+            const current = await db.measurements.toArray();
+            await db.appMeta.put({
+                key: 'baseline',
+                label: `${fileType} import`,
+                timestamp: new Date().toISOString(),
+                records: normalizeSnapshot(current)
             });
-
-            imported++;
-        }
-
-
-        await loadMeasurements();
-
-
-        alert(
-            `Import completed.\n\n` +
-            `Imported: ${imported}\n` +
-            `Skipped: ${skipped}`
-        );
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            'Could not import the file.\n\n' +
-            'Please make sure it is a valid ' +
-            'measurements JSON file.'
-        );
-    }
-}
-
-
-// --------------------------------------------------
-// CSV Export
-// --------------------------------------------------
-
-async function exportCsv() {
-
-    const measurements =
-        await db.measurements
-            .orderBy('date')
-            .toArray();
-
-
-    const header =
-        'Date,Weight (kg),Waist (cm)';
-
-
-    const rows =
-        measurements.map(measurement => {
-
-            return [
-                measurement.date,
-                measurement.weight,
-                measurement.waist
-            ].join(',');
-
         });
 
-
-    const csv =
-        [header, ...rows].join('\n');
-
-
-    const blob =
-        new Blob(
-            ['\uFEFF' + csv],
-            {
-                type:
-                    'text/csv;charset=utf-8;'
-            }
-        );
-
-
-    const url =
-        URL.createObjectURL(blob);
-
-
-    const link =
-        document.createElement('a');
-
-    link.href = url;
-
-    link.download =
-        `measurements-${
-            new Date()
-                .toISOString()
-                .split('T')[0]
-        }.csv`;
-
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    link.remove();
-
-    URL.revokeObjectURL(url);
-}
-
-
-// --------------------------------------------------
-// CSV Import
-// --------------------------------------------------
-
-async function importCsv(file) {
-
-    try {
-
-        const text =
-            await file.text();
-
-
-        const lines =
-            text
-                .replace(/^\uFEFF/, '')
-                .split(/\r?\n/)
-                .filter(
-                    line => line.trim() !== ''
-                );
-
-
-        if (lines.length < 2) {
-            throw new Error(
-                'CSV file is empty.'
-            );
-        }
-
-
-        const dataLines =
-            lines.slice(1);
-
-
-        let imported = 0;
-        let skipped = 0;
-
-
-        for (const line of dataLines) {
-
-            const columns =
-                line.split(',');
-
-
-            if (columns.length < 3) {
-                skipped++;
-                continue;
-            }
-
-
-            const date =
-                columns[0].trim();
-
-            const weight =
-                Number(columns[1].trim());
-
-            const waist =
-                Number(columns[2].trim());
-
-
-            if (
-                !date ||
-                !Number.isFinite(weight) ||
-                !Number.isFinite(waist)
-            ) {
-                skipped++;
-                continue;
-            }
-
-
-            const existing =
-                await db.measurements
-                    .where('date')
-                    .equals(date)
-                    .filter(
-                        measurement =>
-                            measurement.weight === weight &&
-                            measurement.waist === waist
-                    )
-                    .first();
-
-
-            if (existing) {
-                skipped++;
-                continue;
-            }
-
-
-            await db.measurements.add({
-
-                date,
-                weight,
-                waist
-
-            });
-
-            imported++;
-        }
-
-
+        pendingImport = null;
+        importReviewOverlay.hidden = true;
         await loadMeasurements();
 
-
         alert(
-            `CSV import completed.\n\n` +
-            `Imported: ${imported}\n` +
-            `Skipped: ${skipped}`
+            `${fileType} import completed.\n\n` +
+            `Added: ${added}\nEdited: ${edited}\nSkipped/invalid: ${skipped}\n\n` +
+            'Change statistics have been reset to this import baseline.'
         );
-
-
     } catch (error) {
-
         console.error(error);
+        alert('Import failed. The database transaction was rolled back.');
+    }
+}
 
-        alert(
-            'Could not import the CSV file.\n\n' +
-            'Please make sure it has the correct format.'
-        );
+function cancelImportReview() {
+    pendingImport = null;
+    importReviewOverlay.hidden = true;
+}
+
+confirmImportButton.addEventListener('click', confirmImport);
+cancelImportReviewButton.addEventListener('click', cancelImportReview);
+importReviewOverlay.addEventListener('click', event => {
+    if (event.target === importReviewOverlay) cancelImportReview();
+});
+
+async function importData(file) {
+    try {
+        const { records, errors } = parseJsonImport(await file.text());
+        await prepareImport(records, errors, 'JSON');
+    } catch (error) {
+        console.error(error);
+        alert('Could not read this JSON file. Please choose a valid measurements JSON export.');
     }
 }
 
 
-// --------------------------------------------------
+// CSV Export
+async function exportCsv() {
+    const measurements = await db.measurements.orderBy('date').toArray();
+    const header = 'Date,Weight (kg),Waist (cm)';
+    const rows = measurements.map(measurement =>
+        [measurement.date, measurement.weight, measurement.waist].join(',')
+    );
+    const csv = [header, ...rows].join('\n');
+    const filename = `measurements-${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadTextFile('\uFEFF' + csv, 'text/csv;charset=utf-8;', filename);
+    await setCurrentBaseline('CSV export');
+}
+
+
+// CSV Import
+async function importCsv(file) {
+    try {
+        const { records, errors } = parseCsvImport(await file.text());
+        await prepareImport(records, errors, 'CSV');
+    } catch (error) {
+        console.error(error);
+        alert('Could not read this CSV file. Please make sure it has Date, Weight (kg), and Waist (cm) columns.');
+    }
+}
+
+
 // Data buttons
 // --------------------------------------------------
 
@@ -1210,4 +1481,9 @@ importCsvFile.addEventListener(
 // Start application
 // --------------------------------------------------
 
-loadMeasurements();
+ensureBaseline()
+    .then(() => loadMeasurements())
+    .catch(error => {
+        console.error('Could not initialize change statistics:', error);
+        loadMeasurements();
+    });
