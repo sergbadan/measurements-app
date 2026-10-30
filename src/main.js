@@ -980,6 +980,11 @@ async function updateChangeStats() {
     statAdded.textContent = String(added);
     statEdited.textContent = String(edited);
     statDeleted.textContent = String(deleted);
+    statAdded.style.color = added > 0 ? '#16a34a' : '';
+    statEdited.style.color = edited > 0 ? '#2563eb' : '';
+    statDeleted.style.color = deleted > 0 ? '#dc2626' : '';
+
+
 
     if (baseline) {
         const date = new Date(baseline.timestamp);
