@@ -176,7 +176,13 @@ app.innerHTML = `
         <section id="data-tab" class="tab-content">
 
             <section class="card">
-                <h2>Change statistics</h2>
+                <h2>
+                    Change statistics
+                    <span id="total-records-count"
+                        style="font-size: 0.85em; color: #6b7280; font-weight: normal;">
+                    Total: 0 records
+                    </span>
+                </h2>
                 <p class="data-description" id="stats-baseline-label">
                     Changes since the latest import or export.
                 </p>
@@ -492,6 +498,13 @@ async function loadMeasurements() {
         .orderBy('date')
         .reverse()
         .toArray();
+    
+        const totalRecordsCount = document.querySelector('#total-records-count');
+
+        if (totalRecordsCount) {
+            totalRecordsCount.textContent =
+            `Total: ${measurements.length} records`;
+        }
 
     tableBody.innerHTML = '';
 
