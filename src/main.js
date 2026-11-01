@@ -1,6 +1,9 @@
 import './style.css';
 import Dexie from 'dexie';
 import Chart from 'chart.js/auto';
+import packageJson from '../package.json';
+
+const appVersion = packageJson.version;
 
 const db = new Dexie('MeasurementsDatabase');
 
@@ -20,7 +23,11 @@ app.innerHTML = `
 
         <header>
             <h1>My Measurements</h1>
-            <p class="subtitle">Track your weight and waist</p>
+            <p class="subtitle">
+                Track your weight and waist
+                <span class="app-version">v. ${appVersion}</span>
+            </p>
+
         </header>
 
         <!-- Navigation -->
