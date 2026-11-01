@@ -161,7 +161,16 @@ app.innerHTML = `
             <option value="180">Last 6 months</option>
             <option value="365">Last year</option>
             <option value="all">All data</option>
+            <option value="custom">Custom period</option>
         </select>
+        <div id="custom-date-range" style="display: none;">
+            <label for="chart-start-date">From:</label>
+            <input type="date" id="chart-start-date">
+
+            <label for="chart-end-date">To:</label>
+            <input type="date" id="chart-end-date">
+        </div>
+
     </div>
 </div>
 
@@ -360,16 +369,15 @@ const weightInput = document.querySelector('#weight');
 const waistInput = document.querySelector('#waist');
 
 const tableBody = document.querySelector('#measurements-table');
-const chartPeriodSelect =
-    document.querySelector('#chart-period-select');
-const showActionsToggle =
-    document.querySelector('#show-actions-toggle');
+const chartPeriodSelect = document.querySelector('#chart-period-select');
+const customDateRange = document.querySelector('#custom-date-range');
+const chartStartDate = document.querySelector('#chart-start-date');
+const chartEndDate = document.querySelector('#chart-end-date');
+const showActionsToggle = document.querySelector('#show-actions-toggle');
 
-const actionsHeader =
-    document.querySelector('#actions-header');
+const actionsHeader = document.querySelector('#actions-header');
 
-const switchStatus =
-    document.querySelector('#switch-status');
+const switchStatus = document.querySelector('#switch-status');
 const formTitle = document.querySelector('#form-title');
 const saveButton = document.querySelector('#save-button');
 const cancelButton = document.querySelector('#cancel-button');
@@ -564,34 +572,43 @@ function updateChart(measurements) {
             (a, b) => a.date.localeCompare(b.date)
         );
 
-    const selectedPeriod = chartPeriodSelect.value;
+ const selectedPeriod = chartPeriodSelect.value;
 
 let filteredMeasurements = sortedMeasurements;
 
-if (selectedPeriod !== 'all') {
+if (selectedPeriod === 'custom') {
+    const startDate = chartStartDate.value;
+    const endDate = chartEndDate.value;
+
+    if (startDate && endDate && startDate <= endDate) {
+        filteredMeasurements = sortedMeasurements.filter(
+            measurement =>
+                measurement.date >= startDate &&
+                measurement.date <= endDate
+        );
+    } else {
+        filteredMeasurements = [];
+    }
+} else if (selectedPeriod !== 'all' && sortedMeasurements.length > 0) {
     const days = Number(selectedPeriod);
 
     const latestDate = new Date(
-        `${sortedMeasurements[sortedMeasurements.length - 1]?.date}T00:00:00`
+        `${sortedMeasurements[sortedMeasurements.length - 1].date}T00:00:00`
     );
 
-    if (sortedMeasurements.length > 0) {
-        const startDate = new Date(latestDate);
-        startDate.setDate(startDate.getDate() - days);
+    const startDate = new Date(latestDate);
+    startDate.setDate(startDate.getDate() - days);
 
-        filteredMeasurements = sortedMeasurements.filter(
-            measurement => {
-                const measurementDate = new Date(
-                    `${measurement.date}T00:00:00`
-                );
-
-                return (
-                    measurementDate >= startDate &&
-                    measurementDate <= latestDate
-                );
-            }
+    filteredMeasurements = sortedMeasurements.filter(measurement => {
+        const measurementDate = new Date(
+            `${measurement.date}T00:00:00`
         );
-    }
+
+        return (
+            measurementDate >= startDate &&
+            measurementDate <= latestDate
+        );
+    });
 }
 
     const labels = filteredMeasurements.map(
@@ -731,14 +748,22 @@ const waists = filteredMeasurements.map(
     });
 }
 
-chartPeriodSelect.addEventListener('change', async () => {
+async function refreshChart() {
+    const isCustom = chartPeriodSelect.value === 'custom';
+
+    customDateRange.style.display = isCustom ? 'flex' : 'none';
+
     const measurements = await db.measurements
         .orderBy('date')
         .toArray();
 
     updateChart(measurements);
-});
+}
 
+chartPeriodSelect.addEventListener('change', refreshChart);
+
+chartStartDate.addEventListener('change', refreshChart);
+chartEndDate.addEventListener('change', refreshChart);
 // --------------------------------------------------
 // Reset form
 // --------------------------------------------------
