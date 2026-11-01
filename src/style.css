@@ -350,3 +350,27 @@ td:last-child {
 .chart-period label {
     margin: 0;
 }
+
+.chart-period {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.chart-period-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-date-range {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.custom-date-range input {
+    max-width: 145px;
+}

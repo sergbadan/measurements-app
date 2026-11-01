@@ -154,6 +154,7 @@ app.innerHTML = `
 <div class="chart-header">
     <h2>Trends</h2>
     <div class="chart-period">
+    <div class="chart-period-select">
         <label for="chart-period-select">Period:</label>
         <select id="chart-period-select">
             <option value="30">Last 30 days</option>
@@ -163,15 +164,17 @@ app.innerHTML = `
             <option value="all">All data</option>
             <option value="custom">Custom period</option>
         </select>
-        <div id="custom-date-range" style="display: none;">
-            <label for="chart-start-date">From:</label>
-            <input type="date" id="chart-start-date">
-
-            <label for="chart-end-date">To:</label>
-            <input type="date" id="chart-end-date">
-        </div>
-
     </div>
+
+    <div id="custom-date-range" class="custom-date-range"
+         style="display: none;">
+        <label for="chart-start-date">From:</label>
+        <input type="date" id="chart-start-date">
+
+        <label for="chart-end-date">To:</label>
+        <input type="date" id="chart-end-date">
+    </div>
+</div>
 </div>
 
                 <div class="chart-container">
