@@ -351,17 +351,33 @@ td:last-child {
     margin: 0;
 }
 
-.chart-period {
+.chart-header {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 8px;
+}
+
+.chart-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.chart-title-row h2 {
+    margin: 0;
+    white-space: nowrap;
 }
 
 .chart-period-select {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+}
+
+.chart-period-select select {
+    max-width: 150px;
 }
 
 .custom-date-range {

@@ -152,18 +152,20 @@ app.innerHTML = `
             <section class="card">
                 
 <div class="chart-header">
-    <h2>Trends</h2>
-    <div class="chart-period">
-    <div class="chart-period-select">
-        <label for="chart-period-select">Period:</label>
-        <select id="chart-period-select">
-            <option value="30">Last 30 days</option>
-            <option value="90" selected>Last 3 months</option>
-            <option value="180">Last 6 months</option>
-            <option value="365">Last year</option>
-            <option value="all">All data</option>
-            <option value="custom">Custom period</option>
-        </select>
+    <div class="chart-title-row">
+        <h2>Trends</h2>
+
+        <div class="chart-period-select">
+            <label for="chart-period-select">Period:</label>
+            <select id="chart-period-select">
+                <option value="30">Last 30 days</option>
+                <option value="90" selected>Last 3 months</option>
+                <option value="180">Last 6 months</option>
+                <option value="365">Last year</option>
+                <option value="all">All data</option>
+                <option value="custom">Custom period</option>
+            </select>
+        </div>
     </div>
 
     <div id="custom-date-range" class="custom-date-range"
@@ -174,7 +176,6 @@ app.innerHTML = `
         <label for="chart-end-date">To:</label>
         <input type="date" id="chart-end-date">
     </div>
-</div>
 </div>
 
                 <div class="chart-container">
