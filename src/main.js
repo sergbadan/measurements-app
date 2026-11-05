@@ -177,10 +177,10 @@ app.innerHTML = `
 
     <div id="custom-date-range" class="custom-date-range"
          style="display: none;">
-        <label for="chart-start-date">From:</label>
+        <label for="chart-start-date"></label>
         <input type="date" id="chart-start-date">
 
-        <label for="chart-end-date">To:</label>
+        <label for="chart-end-date">-</label>
         <input type="date" id="chart-end-date">
     </div>
 </div>

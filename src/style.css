@@ -385,12 +385,12 @@ td:last-child {
     align-items: center;
     flex-wrap: wrap;
     gap: 5px;
-    font-size: 90%;
+    /* font-size: 90%; */
 }
 
 .custom-date-range input {
     max-width: 135px;
-    font-size: 90%;
+    /* font-size: 90%; */
     padding: 5px;
 }
 
