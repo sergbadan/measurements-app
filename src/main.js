@@ -84,7 +84,6 @@ app.innerHTML = `
                             step="0.1"
                             min="0"
                             placeholder="82.4"
-                            required
                         >
                     </div>
 
@@ -97,7 +96,6 @@ app.innerHTML = `
                             step="0.1"
                             min="0"
                             placeholder="94"
-                            required
                         >
                     </div>
 
@@ -517,13 +515,13 @@ async function loadMeasurements() {
         .orderBy('date')
         .reverse()
         .toArray();
-    
-        const totalRecordsCount = document.querySelector('#total-records-count');
 
-        if (totalRecordsCount) {
-            totalRecordsCount.textContent =
+    const totalRecordsCount = document.querySelector('#total-records-count');
+
+    if (totalRecordsCount) {
+        totalRecordsCount.textContent =
             `Total: ${measurements.length} records`;
-        }
+    }
 
     tableBody.innerHTML = '';
 
@@ -535,11 +533,11 @@ async function loadMeasurements() {
             <td>${measurement.date}</td>
 
             <td>
-                ${measurement.weight.toFixed(1)}
+                ${measurement.weight == null ? '' : Number(measurement.weight).toFixed(1)}
             </td>
 
             <td>
-                ${measurement.waist.toFixed(1)}
+                ${measurement.waist == null ? '' : Number(measurement.waist).toFixed(1)}
             </td>
 
             
@@ -583,56 +581,56 @@ function updateChart(measurements) {
             (a, b) => a.date.localeCompare(b.date)
         );
 
- const selectedPeriod = chartPeriodSelect.value;
+    const selectedPeriod = chartPeriodSelect.value;
 
-let filteredMeasurements = sortedMeasurements;
+    let filteredMeasurements = sortedMeasurements;
 
-if (selectedPeriod === 'custom') {
-    const startDate = chartStartDate.value;
-    const endDate = chartEndDate.value;
+    if (selectedPeriod === 'custom') {
+        const startDate = chartStartDate.value;
+        const endDate = chartEndDate.value;
 
-    if (startDate && endDate && startDate <= endDate) {
-        filteredMeasurements = sortedMeasurements.filter(
-            measurement =>
-                measurement.date >= startDate &&
-                measurement.date <= endDate
+        if (startDate && endDate && startDate <= endDate) {
+            filteredMeasurements = sortedMeasurements.filter(
+                measurement =>
+                    measurement.date >= startDate &&
+                    measurement.date <= endDate
+            );
+        } else {
+            filteredMeasurements = [];
+        }
+    } else if (selectedPeriod !== 'all' && sortedMeasurements.length > 0) {
+        const days = Number(selectedPeriod);
+
+        const latestDate = new Date(
+            `${sortedMeasurements[sortedMeasurements.length - 1].date}T00:00:00`
         );
-    } else {
-        filteredMeasurements = [];
+
+        const startDate = new Date(latestDate);
+        startDate.setDate(startDate.getDate() - days);
+
+        filteredMeasurements = sortedMeasurements.filter(measurement => {
+            const measurementDate = new Date(
+                `${measurement.date}T00:00:00`
+            );
+
+            return (
+                measurementDate >= startDate &&
+                measurementDate <= latestDate
+            );
+        });
     }
-} else if (selectedPeriod !== 'all' && sortedMeasurements.length > 0) {
-    const days = Number(selectedPeriod);
-
-    const latestDate = new Date(
-        `${sortedMeasurements[sortedMeasurements.length - 1].date}T00:00:00`
-    );
-
-    const startDate = new Date(latestDate);
-    startDate.setDate(startDate.getDate() - days);
-
-    filteredMeasurements = sortedMeasurements.filter(measurement => {
-        const measurementDate = new Date(
-            `${measurement.date}T00:00:00`
-        );
-
-        return (
-            measurementDate >= startDate &&
-            measurementDate <= latestDate
-        );
-    });
-}
 
     const labels = filteredMeasurements.map(
-    measurement => measurement.date
-);
+        measurement => measurement.date
+    );
 
-const weights = filteredMeasurements.map(
-    measurement => measurement.weight
-);
+    const weights = filteredMeasurements.map(
+        measurement => measurement.weight
+    );
 
-const waists = filteredMeasurements.map(
-    measurement => measurement.waist
-);
+    const waists = filteredMeasurements.map(
+        measurement => measurement.waist
+    );
 
 
     // Destroy previous chart
@@ -874,11 +872,22 @@ form.addEventListener('submit', async event => {
 
     const date = dateInput.value;
 
-    const weight =
-        Number(weightInput.value);
+    //const weight = Number(weightInput.value);
+    //const waist = Number(waistInput.value);
+    const weight = weightInput.value.trim() === '' ? null : Number(weightInput.value);
+    const waist = waistInput.value.trim() === '' ? null : Number(waistInput.value);
+    if (weight === null && waist === null) {
+        alert('Enter at least one measurement: weight or waist.');
+        return;
+    }
 
-    const waist =
-        Number(waistInput.value);
+    if (
+        (weight !== null && (!Number.isFinite(weight) || weight < 0)) ||
+        (waist !== null && (!Number.isFinite(waist) || waist < 0))
+    ) {
+        alert('Measurements must be non-negative numbers.');
+        return;
+    }
 
 
     if (editingId === null) {
@@ -1106,10 +1115,15 @@ function normalizeImportedRecord(record, rowNumber) {
     const waist = parseOptionalNumber(record.waist);
 
     if (weight === undefined || waist === undefined) {
-        return { error: `Row ${rowNumber}: weight and waist must be non-negative numbers or empty.` };
+        return {
+            error: `Row ${rowNumber}: weight and waist must be non-negative numbers or empty.`
+        };
     }
+
     if (weight === null && waist === null) {
-        return { error: `Row ${rowNumber}: both measurements are empty.` };
+        return {
+            error: `Row ${rowNumber}: both measurements are empty.`
+        };
     }
 
     return {
@@ -1221,21 +1235,26 @@ async function prepareImport(records, errors, fileType) {
         group.weightCandidates = fieldCandidates(group, 'weight');
         group.waistCandidates = fieldCandidates(group, 'waist');
 
-        
-group.needsReview =
-    group.weightCandidates.length > 1 ||
-    group.waistCandidates.length > 1;
 
-const hasWeight = group.weightCandidates.length > 0;
-const hasWaist = group.waistCandidates.length > 0;
+        group.needsReview =
+            group.weightCandidates.length > 1 ||
+            group.waistCandidates.length > 1;
 
-if (existing.length > 0 || (hasWeight && hasWaist)) {
-    groups.push(group);
-} else {
-    errors.push(
-        `Date ${date}: a new record needs both weight and waist; it will be skipped.`
-    );
-}
+        const hasWeight = group.weightCandidates.length > 0;
+        const hasWaist = group.waistCandidates.length > 0;
+
+        //if (existing.length > 0 || (hasWeight && hasWaist)) {
+        if (
+            existing.length > 0 ||
+            hasWeight ||
+            hasWaist
+        ) {
+            groups.push(group);
+        } else {
+            errors.push(
+                `Date ${date}: both measurements are empty; it will be skipped.`
+            );
+        }
 
     }
 
@@ -1352,20 +1371,20 @@ async function confirmImport() {
     try {
         await db.transaction('rw', db.measurements, db.appMeta, async () => {
             for (const [groupIndex, group] of groups.entries()) {
-                
-const existing = group.existing[0] ?? null;
-const needsReview = group.needsReview;
 
-const weightChoice = needsReview
-    ? selectedCandidate(groupIndex, 'weight')
-    : group.weightCandidates[0];
+                const existing = group.existing[0] ?? null;
+                const needsReview = group.needsReview;
 
-const waistChoice = needsReview
-    ? selectedCandidate(groupIndex, 'waist')
-    : group.waistCandidates[0];
+                const weightChoice = needsReview
+                    ? selectedCandidate(groupIndex, 'weight')
+                    : group.weightCandidates[0];
 
-const weight = weightChoice?.value ?? existing?.weight ?? null;
-const waist = waistChoice?.value ?? existing?.waist ?? null;
+                const waistChoice = needsReview
+                    ? selectedCandidate(groupIndex, 'waist')
+                    : group.waistCandidates[0];
+
+                const weight = weightChoice?.value ?? existing?.weight ?? null;
+                const waist = waistChoice?.value ?? existing?.waist ?? null;
 
 
                 if (existing) {
@@ -1378,8 +1397,10 @@ const waist = waistChoice?.value ?? existing?.waist ?? null;
                         });
                         edited++;
                     }
-                } else if (weight !== null && weight !== undefined &&
-                           waist !== null && waist !== undefined) {
+                } else if (
+                    (weight !== null && weight !== undefined) ||
+                    (waist !== null && waist !== undefined)
+                ) {
                     await db.measurements.add({ date: group.date, weight, waist });
                     added++;
                 } else {
