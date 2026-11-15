@@ -808,7 +808,7 @@ function updateChart(measurements) {
 
                             }
 
-                            return 'Actual measurement';
+                            return '';//'Actual measurement';
                         }
                     }
                 }
