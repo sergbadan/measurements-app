@@ -620,31 +620,59 @@ function updateChart(measurements) {
         });
     }
 
+
     const labels = filteredMeasurements.map(
         measurement => measurement.date
     );
 
     // Forward Fill for Weight
     let lastWeight = null;
+    let lastWeightDate = null;
+
+    const weightForwardFilled = [];
+    const weightSourceDates = [];
 
     const weights = filteredMeasurements.map(measurement => {
-        if (measurement.weight !== null && measurement.weight !== undefined) {
+
+        const hasValue =
+            measurement.weight !== null &&
+            measurement.weight !== undefined;
+
+        if (hasValue) {
             lastWeight = measurement.weight;
+            lastWeightDate = measurement.date;
         }
+
+        weightForwardFilled.push(!hasValue && lastWeight !== null);
+        weightSourceDates.push(lastWeightDate);
 
         return lastWeight;
     });
 
     // Forward Fill for Waist
     let lastWaist = null;
+    let lastWaistDate = null;
+
+    const waistForwardFilled = [];
+    const waistSourceDates = [];
 
     const waists = filteredMeasurements.map(measurement => {
-        if (measurement.waist !== null && measurement.waist !== undefined) {
+
+        const hasValue =
+            measurement.waist !== null &&
+            measurement.waist !== undefined;
+
+        if (hasValue) {
             lastWaist = measurement.waist;
+            lastWaistDate = measurement.date;
         }
+
+        waistForwardFilled.push(!hasValue && lastWaist !== null);
+        waistSourceDates.push(lastWaistDate);
 
         return lastWaist;
     });
+
 
 
     // Destroy previous chart
@@ -668,6 +696,7 @@ function updateChart(measurements) {
             datasets: [
 
                 // Weight
+
                 {
                     label: 'Weight (kg)',
                     data: weights,
@@ -682,12 +711,28 @@ function updateChart(measurements) {
                     pointRadius: 4,
                     pointHoverRadius: 6,
 
+                    pointBackgroundColor: context =>
+                        weightForwardFilled[context.dataIndex]
+                            ? 'transparent'
+                            : '#2563eb',
+
+                    pointBorderColor: '#2563eb',
+
                     tension: 0.2,
 
-                    fill: false
+                    fill: false,
+
+                    segment: {
+                        borderDash: context =>
+                            weightForwardFilled[context.p1DataIndex]
+                                ? [6, 4]
+                                : undefined
+                    }
                 },
 
+
                 // Waist
+
                 {
                     label: 'Waist (cm)',
                     data: waists,
@@ -702,10 +747,25 @@ function updateChart(measurements) {
                     pointRadius: 4,
                     pointHoverRadius: 6,
 
+                    pointBackgroundColor: context =>
+                        waistForwardFilled[context.dataIndex]
+                            ? 'transparent'
+                            : '#dc2626',
+
+                    pointBorderColor: '#dc2626',
+
                     tension: 0.2,
 
-                    fill: false
+                    fill: false,
+
+                    segment: {
+                        borderDash: context =>
+                            waistForwardFilled[context.p1DataIndex]
+                                ? [6, 4]
+                                : undefined
+                    }
                 }
+
 
             ]
         },
@@ -726,7 +786,33 @@ function updateChart(measurements) {
                 legend: {
                     display: true,
                     position: 'top'
+                },
+
+                tooltip: {
+                    callbacks: {
+                        afterLabel: context => {
+
+                            const index = context.dataIndex;
+
+                            if (context.datasetIndex === 0) {
+
+                                if (weightForwardFilled[index]) {
+                                    return `Forward Fill (from ${weightSourceDates[index]})`;
+                                }
+
+                            } else if (context.datasetIndex === 1) {
+
+                                if (waistForwardFilled[index]) {
+                                    return `Forward Fill (from ${waistSourceDates[index]})`;
+                                }
+
+                            }
+
+                            return 'Actual measurement';
+                        }
+                    }
                 }
+
 
             },
 
