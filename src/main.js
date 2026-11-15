@@ -624,13 +624,27 @@ function updateChart(measurements) {
         measurement => measurement.date
     );
 
-    const weights = filteredMeasurements.map(
-        measurement => measurement.weight
-    );
+    // Forward Fill for Weight
+    let lastWeight = null;
 
-    const waists = filteredMeasurements.map(
-        measurement => measurement.waist
-    );
+    const weights = filteredMeasurements.map(measurement => {
+        if (measurement.weight !== null && measurement.weight !== undefined) {
+            lastWeight = measurement.weight;
+        }
+
+        return lastWeight;
+    });
+
+    // Forward Fill for Waist
+    let lastWaist = null;
+
+    const waists = filteredMeasurements.map(measurement => {
+        if (measurement.waist !== null && measurement.waist !== undefined) {
+            lastWaist = measurement.waist;
+        }
+
+        return lastWaist;
+    });
 
 
     // Destroy previous chart
