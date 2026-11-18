@@ -2,6 +2,27 @@ import './style.css';
 import Dexie from 'dexie';
 import Chart from 'chart.js/auto';
 import packageJson from '../package.json';
+import en from './i18n/en.js';
+import pl from './i18n/pl.js';
+import ru from './i18n/ru.js';
+
+// Available translations
+const translations = {
+    en,
+    pl,
+    ru
+};
+
+// Load saved language or use English
+let currentLanguage =
+    localStorage.getItem('language') || 'en';
+
+// Translation function
+function t(key) {
+    return translations[currentLanguage]?.[key]
+        ?? translations.en[key]
+        ?? key;
+}
 
 const appVersion = packageJson.version;
 
@@ -22,12 +43,17 @@ app.innerHTML = `
     <div class="container">
 
         <header>
-            <h1>My Measurements</h1>
+            <h1>${t('appTitle')}
+                <select id="language-selector" aria-label="Language">
+                    <option value="en">EN</option>
+                    <option value="pl">🇵🇱</option>
+                    <option value="ru">🇷🇺</option>
+                </select>
+            </h1>
             <p class="subtitle">
                 Track your weight and waist
                 <span class="app-version">v. ${appVersion}</span>
             </p>
-
         </header>
 
         <!-- Navigation -->
@@ -37,7 +63,7 @@ app.innerHTML = `
                 class="tab-button active"
                 data-tab="measurements"
             >
-                Measurements
+                ${t('measurements')}
             </button>
 
             <button
@@ -45,7 +71,7 @@ app.innerHTML = `
                 class="tab-button"
                 data-tab="charts"
             >
-                Charts
+                ${t('charts')}
             </button>
 
             <button
@@ -53,7 +79,7 @@ app.innerHTML = `
                 class="tab-button"
                 data-tab="data"
             >
-                Data
+                ${t('data')}
             </button>
         </nav>
 
@@ -61,12 +87,12 @@ app.innerHTML = `
         <section id="measurements-tab" class="tab-content active">
 
             <section class="card">
-                <h2 id="form-title">Add measurement</h2>
+                <h2 id="form-title">${t('addMeasurement')}</h2>
 
                 <form id="measurement-form">
 
                     <div class="form-group">
-                        <label for="date">Date</label>
+                        <label for="date">${t('date')}</label>
                         <input
                             type="date"
                             id="date"
@@ -76,7 +102,7 @@ app.innerHTML = `
                     </div>
 
                     <div class="form-group">
-                        <label for="weight">Weight (kg)</label>
+                        <label for="weight">${t('weight')}</label>
                         <input
                             type="number"
                             id="weight"
@@ -88,7 +114,7 @@ app.innerHTML = `
                     </div>
 
                     <div class="form-group">
-                        <label for="waist">Waist (cm)</label>
+                        <label for="waist">${t('waist')}</label>
                         <input
                             type="number"
                             id="waist"
@@ -100,7 +126,7 @@ app.innerHTML = `
                     </div>
 
                     <button type="submit" id="save-button">
-                        Save measurement
+                        ${t('save')}
                     </button>
 
                     <button
@@ -109,17 +135,17 @@ app.innerHTML = `
                         class="secondary-button"
                         hidden
                     >
-                        Cancel
+                        ${t('cancel')}
                     </button>
 
                 </form>
             </section>
 
             <section class="card">
-                <h2>Measurements</h2>
+                <h2>${t('measurements')}</h2>
 
                 <label class="visibility-switch">
-        <span>Show Edit/Delete buttons</span>
+        <span>${t('showEditDeleteButtnons')}</span>
 
         <input
             type="checkbox"
@@ -136,10 +162,10 @@ app.innerHTML = `
                     <table>
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Weight (kg)</th>
-                                <th>Waist (cm)</th>
-                                <th id="actions-header" hidden>Actions</th>
+                                <th>${t('date')}</th>
+                                <th>${t('weight')}</th>
+                                <th>${t('waist')}</th>
+                                <th id="actions-header" hidden>${t('actions')}</th>
                             </tr>
                         </thead>
 
@@ -158,17 +184,17 @@ app.innerHTML = `
                 
 <div class="chart-header">
     <div class="chart-title-row">
-        <h2>Trends</h2>
+        <h2>${t('trends')}</h2>
 
         <div class="chart-period-select">
-            <label for="chart-period-select">Period:</label>
+            <label for="chart-period-select">${t('period')}:</label>
             <select id="chart-period-select">
-                <option value="30">Last 30 days</option>
-                <option value="90" selected>Last 3 months</option>
-                <option value="180">Last 6 months</option>
-                <option value="365">Last year</option>
-                <option value="all">All data</option>
-                <option value="custom">Custom period</option>
+                <option value="30">${t('last30Days')}</option>
+                <option value="90" selected>${t('last3Months')}</option>
+                <option value="180">${t('last6Months')}</option>
+                <option value="365">${t('lastYear')}</option>
+                <option value="all">${t('allData')}</option>
+                <option value="custom">${t('customPeriod')}</option>
             </select>
         </div>
     </div>
@@ -225,7 +251,7 @@ app.innerHTML = `
                         type="button"
                         id="export-button"
                     >
-                        Export JSON
+                        ${t('exportJSON')}
                     </button>
 
                     <button
@@ -233,7 +259,7 @@ app.innerHTML = `
                         id="export-csv-button"
                         class="secondary-button"
                     >
-                        Export CSV
+                        ${t('exportCSV')}
                     </button>
 
                     <button
@@ -241,7 +267,7 @@ app.innerHTML = `
                         id="import-button"
                         class="secondary-button"
                     >
-                        Import JSON
+                        ${t('importJSON')}
                     </button>
 
                     <button
@@ -249,7 +275,7 @@ app.innerHTML = `
                         id="import-csv-button"
                         class="secondary-button"
                     >
-                        Import CSV
+                        ${t('importCSV')}
                     </button>
 
                     <input
@@ -283,7 +309,7 @@ app.innerHTML = `
                 </p>
                 <div class="data-actions">
                     <button type="button" id="confirm-import-button">Confirm import</button>
-                    <button type="button" id="cancel-import-review-button" class="secondary-button">Cancel</button>
+                    <button type="button" id="cancel-import-review-button" class="secondary-button">${t('cancel')}</button>
                 </div>
             </section>
         </div>
@@ -432,6 +458,19 @@ let pendingImport = null;
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
 
+// Language selector
+const languageSelector = document.getElementById('language-selector');
+
+languageSelector.value = currentLanguage;
+
+languageSelector.addEventListener('change', () => {
+    currentLanguage = languageSelector.value;
+
+    localStorage.setItem('language', currentLanguage);
+
+    location.reload();
+});
+
 tabButtons.forEach(button => {
 
     button.addEventListener('click', () => {
@@ -492,7 +531,7 @@ function updateActionVisibility() {
         });
 
     switchStatus.textContent =
-        showActions ? 'On' : 'Off';
+        showActions ? t('turnedOn') : t('turnedOff');
 
     showActionsToggle.setAttribute(
         'aria-checked',
@@ -547,7 +586,7 @@ async function loadMeasurements() {
         class="action-button edit-button"
         data-id="${measurement.id}"
     >
-        Edit
+        ${t('edit')}
     </button>
 
     <button
@@ -555,7 +594,7 @@ async function loadMeasurements() {
         class="action-button delete-button"
         data-id="${measurement.id}"
     >
-        Delete
+        ${t('delete')}
     </button>
 </td>
 
@@ -698,7 +737,7 @@ function updateChart(measurements) {
                 // Weight
 
                 {
-                    label: 'Weight (kg)',
+                    label: `${t('weight')}`,
                     data: weights,
 
                     yAxisID: 'weight-axis',
@@ -734,7 +773,7 @@ function updateChart(measurements) {
                 // Waist
 
                 {
-                    label: 'Waist (cm)',
+                    label: `${t('waist')}`,
                     data: waists,
 
                     yAxisID: 'waist-axis',
@@ -827,7 +866,7 @@ function updateChart(measurements) {
 
                     title: {
                         display: true,
-                        text: 'Weight (kg)'
+                        text: `${t('weight')}`,
                     }
 
                 },
@@ -841,7 +880,7 @@ function updateChart(measurements) {
 
                     title: {
                         display: true,
-                        text: 'Waist (cm)'
+                        text: `${t('waist')}`
                     },
 
                     grid: {
@@ -887,10 +926,10 @@ function resetForm() {
     editingId = null;
 
     formTitle.textContent =
-        'Add measurement';
+       `${t('addMeasurement')}`;
 
     saveButton.textContent =
-        'Save measurement';
+        `${t('save')}`;
 
     cancelButton.hidden = true;
 }
@@ -916,10 +955,10 @@ async function editMeasurement(id) {
     waistInput.value = measurement.waist;
 
     formTitle.textContent =
-        'Edit measurement';
+        `${t('editMeasurement')}`;
 
     saveButton.textContent =
-        'Update measurement';
+        t('update');
 
     cancelButton.hidden = false;
 
@@ -1384,8 +1423,8 @@ function renderImportReview() {
             <p class="data-description">
                 ${group.existing.length ? 'Date already exists in the app.' : 'Multiple imported rows have this date.'}
             </p>
-            <div class="conflict-field"><strong>Weight (kg)</strong><div class="conflict-options" data-field="weight"></div></div>
-            <div class="conflict-field"><strong>Waist (cm)</strong><div class="conflict-options" data-field="waist"></div></div>
+            <div class="conflict-field"><strong>${t('weight')}</strong><div class="conflict-options" data-field="weight"></div></div>
+            <div class="conflict-field"><strong>${t('waist')}</strong><div class="conflict-options" data-field="waist"></div></div>
         `;
 
         for (const field of ['weight', 'waist']) {
