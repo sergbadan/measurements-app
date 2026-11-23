@@ -36,4 +36,21 @@ export default {
     lastYear: 'Last year',
     allData: 'All data',
     customPeriod: 'Custom period',
+	
+	enterAtLeastOne: 'Enter at least one measurement: weight or waist.',
+	invalidMeasurements: 'Measurements must be non-negative numbers.',
+	confirmDelete: 'Are you sure you want to delete this measurement?',
+	
+	reviewImportConflicts: 'Review import conflicts',
+	invalidImportData: 'weight and waist must be non-negative numbers or empty',
+	chooseValueToKeep: 'Choose the value to keep for each field.',
+	rowBig: 'Row',
+	invalidDate: 'invalid date',
+	emptyBothFields: 'both measurements are empty',
+	skippedInvalidRows: 'Skipped/invalid rows',
+	noChoicesNeeded: 'No choices are needed. Records will be processed automatically.',
+	importMessage: 'Records with dates not present in the app will be added automatically. Existing records absent from the file will remain unchanged. Empty imported fields keep existing values.',
+	
+	alertImportFailed: 'Import failed. The database transaction was rolled back.',
+	
 };

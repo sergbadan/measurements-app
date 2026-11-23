@@ -45,9 +45,9 @@ app.innerHTML = `
         <header>
             <h1>${t('appTitle')}
                 <select id="language-selector" aria-label="Language">
-                    <option value="en">EN</option>
-                    <option value="pl">🇵🇱</option>
-                    <option value="ru">🇷🇺</option>
+                    <option value="en">GB En</option>
+                    <option value="pl">PL PL</option>
+                    <option value="ru">RU Ру</option>
                 </select>
             </h1>
             <p class="subtitle">
@@ -299,13 +299,11 @@ app.innerHTML = `
 
         <div id="import-review-overlay" class="import-modal-overlay" hidden>
             <section class="import-modal card" role="dialog" aria-modal="true" aria-labelledby="import-review-title">
-                <h2 id="import-review-title">Review import conflicts</h2>
+                <h2 id="import-review-title">${t('reviewImportConflicts')}</h2>
                 <p id="import-review-summary" class="data-description"></p>
                 <div id="import-conflicts-list" class="import-conflicts-list"></div>
                 <p class="data-description">
-                    Records with dates not present in the app will be added automatically.
-                    Existing records absent from the file will remain unchanged.
-                    Empty imported fields keep existing values.
+                    ${t('importMessage')}
                 </p>
                 <div class="data-actions">
                     <button type="button" id="confirm-import-button">Confirm import</button>
@@ -982,10 +980,7 @@ async function deleteMeasurement(id) {
         return;
     }
 
-    const confirmed =
-        confirm(
-            `Delete measurement from ${measurement.date}?`
-        );
+    const confirmed = confirm(t('confirmDelete'))
 
     if (!confirmed) {
         return;
@@ -1016,7 +1011,7 @@ form.addEventListener('submit', async event => {
     const weight = weightInput.value.trim() === '' ? null : Number(weightInput.value);
     const waist = waistInput.value.trim() === '' ? null : Number(waistInput.value);
     if (weight === null && waist === null) {
-        alert('Enter at least one measurement: weight or waist.');
+        alert(t('enterAtLeastOne'));
         return;
     }
 
@@ -1024,7 +1019,7 @@ form.addEventListener('submit', async event => {
         (weight !== null && (!Number.isFinite(weight) || weight < 0)) ||
         (waist !== null && (!Number.isFinite(waist) || waist < 0))
     ) {
-        alert('Measurements must be non-negative numbers.');
+        alert(t('invalidMeasurements'));
         return;
     }
 
@@ -1247,7 +1242,7 @@ function parseOptionalNumber(value) {
 
 function normalizeImportedRecord(record, rowNumber) {
     if (!record || !validDate(String(record.date ?? ''))) {
-        return { error: `Row ${rowNumber}: invalid date.` };
+        return { error: `${t('rowBig')} ${rowNumber}: ${t('invalidDate')}.` };
     }
 
     const weight = parseOptionalNumber(record.weight);
@@ -1255,13 +1250,13 @@ function normalizeImportedRecord(record, rowNumber) {
 
     if (weight === undefined || waist === undefined) {
         return {
-            error: `Row ${rowNumber}: weight and waist must be non-negative numbers or empty.`
+            error: `${t('rowBig')} ${rowNumber}: ${t('invalidImportData')}.`
         };
     }
 
     if (weight === null && waist === null) {
         return {
-            error: `Row ${rowNumber}: both measurements are empty.`
+            error: `${t('rowBig')} ${rowNumber}: ${t('emptyBothFields')}.`
         };
     }
 
@@ -1301,7 +1296,7 @@ function parseCsvImport(text) {
         // The app's own CSV format contains no commas inside field values.
         const columns = line.split(',');
         if (columns.length < 3) {
-            errors.push(`Row ${index + 2}: expected 3 columns.`);
+            errors.push(`${t('rowBig')} ${index + 2}: expected 3 columns.`);
             return;
         }
 
@@ -1412,7 +1407,7 @@ function renderImportReview() {
     importReviewSummary.textContent =
         `${fileType} import: ${groups.length} date(s) to process, ` +
         `${conflicts.length} conflict(s), ${errors.length} skipped/invalid row(s). ` +
-        'Choose the value to keep for each field.';
+        `${t('chooseValueToKeep')}`;
 
     for (const group of conflicts) {
         const groupIndex = groups.indexOf(group);
@@ -1460,13 +1455,13 @@ function renderImportReview() {
     }
 
     if (conflicts.length === 0) {
-        importConflictsList.innerHTML = '<p>No choices are needed. Records will be processed automatically.</p>';
+        importConflictsList.innerHTML = `<p>${t('noChoicesNeeded')}</p>`;
     }
 
     if (errors.length > 0) {
         const details = document.createElement('details');
         const summary = document.createElement('summary');
-        summary.textContent = `Skipped/invalid rows (${errors.length})`;
+        summary.textContent = `${t('skippedInvalidRows')} (${errors.length})`;
         const list = document.createElement('ul');
 
         errors.slice(0, 30).forEach(error => {
@@ -1567,7 +1562,7 @@ async function confirmImport() {
         );
     } catch (error) {
         console.error(error);
-        alert('Import failed. The database transaction was rolled back.');
+        alert(t('alertImportFailed'));
     }
 }
 
