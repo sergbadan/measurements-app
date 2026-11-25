@@ -41,7 +41,23 @@ export default {
 	invalidMeasurements: 'Measurements must be non-negative numbers.',
 	confirmDelete: 'Are you sure you want to delete this measurement?',
 	
+	changeStatistics:'Change statistics',
+	total: 'Total',
+	records: 'records',
+	changesSince: 'Changes since',
+	addedNew: 'Added new',
+	edited: 'Edited',
+	deleted: 'Deleted',
+	
+	changesSinceLabel: 'Changes since the latest import or export.',
+	
+	dataManagement: 'Data management',
+	backUpLabel: 'Backup your measurements or transfer them to Excel or Google Sheets.',
 	reviewImportConflicts: 'Review import conflicts',
+	importText: 'import',
+	datesToProcess: 'date(s) to process',
+	conflicts: 'conflict(s)',
+	skippedInvalidRows1:'skipped/invalid row(s)',
 	invalidImportData: 'weight and waist must be non-negative numbers or empty',
 	chooseValueToKeep: 'Choose the value to keep for each field.',
 	rowBig: 'Row',
@@ -50,7 +66,7 @@ export default {
 	skippedInvalidRows: 'Skipped/invalid rows',
 	noChoicesNeeded: 'No choices are needed. Records will be processed automatically.',
 	importMessage: 'Records with dates not present in the app will be added automatically. Existing records absent from the file will remain unchanged. Empty imported fields keep existing values.',
-	
+	confirmImport: 'Confirm import',
 	alertImportFailed: 'Import failed. The database transaction was rolled back.',
 	
 };

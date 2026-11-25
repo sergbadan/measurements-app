@@ -45,9 +45,9 @@ app.innerHTML = `
         <header>
             <h1>${t('appTitle')}
                 <select id="language-selector" aria-label="Language">
-                    <option value="en">GB En</option>
-                    <option value="pl">PL PL</option>
-                    <option value="ru">RU Ру</option>
+                    <option value="en">EN</option>
+                    <option value="pl">PL</option>
+                    <option value="ru">RU</option>
                 </select>
             </h1>
             <p class="subtitle">
@@ -221,28 +221,27 @@ app.innerHTML = `
 
             <section class="card">
                 <h2>
-                    Change statistics
+                    ${t('changeStatistics')}
                     <span id="total-records-count"
                         style="font-size: 0.85em; color: #6b7280; font-weight: normal;">
-                    Total: 0 records
+                    ${t('total')}: 0 ${t('records')}
                     </span>
                 </h2>
                 <p class="data-description" id="stats-baseline-label">
-                    Changes since the latest import or export.
+                    ${t('changesSinceLabel')}
                 </p>
                 <div class="change-stats" aria-live="polite">
-                    <div class="stat-item"><strong id="stat-added">0</strong><span>Added new</span></div>
-                    <div class="stat-item"><strong id="stat-edited">0</strong><span>Edited</span></div>
-                    <div class="stat-item"><strong id="stat-deleted">0</strong><span>Deleted</span></div>
+                    <div class="stat-item"><strong id="stat-added">0</strong><span>${t('addedNew')}</span></div>
+                    <div class="stat-item"><strong id="stat-edited">0</strong><span>${t('edited')}</span></div>
+                    <div class="stat-item"><strong id="stat-deleted">0</strong><span>${t('deleted')}</span></div>
                 </div>
             </section>
 
             <section class="card">
-                <h2>Data management</h2>
+                <h2>${t('dataManagement')}</h2>
 
                 <p class="data-description">
-                    Backup your measurements or transfer them
-                    to Excel or Google Sheets.
+                    ${t('backUpLabel')}
                 </p>
 
                 <div class="data-actions">
@@ -306,7 +305,7 @@ app.innerHTML = `
                     ${t('importMessage')}
                 </p>
                 <div class="data-actions">
-                    <button type="button" id="confirm-import-button">Confirm import</button>
+                    <button type="button" id="confirm-import-button">${t('confirmImport')}</button>
                     <button type="button" id="cancel-import-review-button" class="secondary-button">${t('cancel')}</button>
                 </div>
             </section>
@@ -557,7 +556,7 @@ async function loadMeasurements() {
 
     if (totalRecordsCount) {
         totalRecordsCount.textContent =
-            `Total: ${measurements.length} records`;
+            `${t('total')}: ${measurements.length} ${t('records')}`;
     }
 
     tableBody.innerHTML = '';
@@ -1182,7 +1181,7 @@ async function updateChangeStats() {
         const date = new Date(baseline.timestamp);
         const formattedDate = Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
         statsBaselineLabel.textContent =
-            `Changes since ${baseline.label.toLowerCase()}${formattedDate ? ` (${formattedDate})` : ''}.`;
+            `${t('changesSince')} ${baseline.label.toLowerCase()}${formattedDate ? ` (${formattedDate})` : ''}.`;
     }
 }
 
@@ -1405,8 +1404,8 @@ function renderImportReview() {
     const conflicts = groups.filter(group => group.needsReview);
 
     importReviewSummary.textContent =
-        `${fileType} import: ${groups.length} date(s) to process, ` +
-        `${conflicts.length} conflict(s), ${errors.length} skipped/invalid row(s). ` +
+        `${fileType} ${t('importText')}: ${groups.length} ${t('datesToProcess')}, ` +
+        `${conflicts.length} ${t('conflicts')}, ${errors.length} ${t('skippedInvalidRows1')}. ` +
         `${t('chooseValueToKeep')}`;
 
     for (const group of conflicts) {
